@@ -63,15 +63,11 @@ export default function DashboardPage() {
     produccion: false,
     configuracion: false,
   })
-  const [usaComandas, setUsaComandas] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('usaComandas');
-      return stored === null ? false : stored === 'true';
-    }
-    return false;
-  });
+  const [usaComandas, setUsaComandas] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('usaComandas');
       if (stored !== null) {
@@ -192,6 +188,17 @@ export default function DashboardPage() {
             >
             <ShoppingCart className="mr-3 h-6 w-6" />
             Abrir POS
+            </Button>
+        </div>
+
+        {/* Botón Ir a Mesas */}
+        <div className="px-6 pb-6">
+            <Button 
+            onClick={() => router.push("/tables")} 
+            className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+            >
+            <LayoutDashboard className="mr-3 h-6 w-6" />
+            Ir a Mesas
             </Button>
         </div>
 
@@ -480,7 +487,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-gray-700">Usar comandas</span>
-                <Switch checked={usaComandas} onCheckedChange={setUsaComandas} />
+                {isMounted && <Switch checked={usaComandas} onCheckedChange={setUsaComandas} />}
               </div>
             </div>
           </nav>

@@ -210,13 +210,13 @@ interface ComandasListProps {
 }
 
 function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, refresh }: ComandasListProps) {
-  const { getComandasByArea } = useComandas()
-  const [comandas, setComandas] = useState(() => getComandasByArea(areaName))
+  const { getComandasByArea, comandas } = useComandas()
+  const [localComandas, setLocalComandas] = useState(() => getComandasByArea(areaName))
   useEffect(() => {
-    setComandas(getComandasByArea(areaName))
-  }, [areaName, refresh, getComandasByArea])
+    setLocalComandas(getComandasByArea(areaName))
+  }, [areaName, refresh, getComandasByArea, comandas])
 
-  if (comandas.length === 0) {
+  if (localComandas.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-24 h-24 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -232,7 +232,7 @@ function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, re
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {comandas.map((comanda) => (
+      {localComandas.map((comanda) => (
         <Card key={comanda.id} className="border shadow-md">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -271,15 +271,27 @@ function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, re
                         // Marcar como completado y eliminar el producto de la comanda
                         const newItems = comanda.items.filter((it, i) => i !== idx)
                         if (newItems.length === 0) {
-                          // Si no quedan productos, eliminar la comanda
+                          // Si no quedan productos, eliminar la comanda completamente
                           const businessId = getBusinessIdFromToken()
                           const comandasKey = businessId ? `restaurante-comandas-${businessId}` : 'restaurante-comandas'
                           const existingComandas = JSON.parse(localStorage.getItem(comandasKey) || '[]')
                           const updatedComandas = existingComandas.filter((c: any) => c.id !== comanda.id)
                           localStorage.setItem(comandasKey, JSON.stringify(updatedComandas))
+                          // Actualizar el estado local inmediatamente
+                          setLocalComandas(prev => prev.filter(c => c.id !== comanda.id))
                         } else {
-                          comanda.items = newItems
-                          onUpdateStatus(comanda.id, comanda.status)
+                          // Actualizar la comanda con los items restantes
+                          const updatedComanda = { ...comanda, items: newItems }
+                          // Actualizar localStorage directamente
+                          const businessId = getBusinessIdFromToken()
+                          const comandasKey = businessId ? `restaurante-comandas-${businessId}` : 'restaurante-comandas'
+                          const existingComandas = JSON.parse(localStorage.getItem(comandasKey) || '[]')
+                          const updatedComandas = existingComandas.map((c: any) => 
+                            c.id === comanda.id ? updatedComanda : c
+                          )
+                          localStorage.setItem(comandasKey, JSON.stringify(updatedComandas))
+                          // Actualizar el estado local inmediatamente
+                          setLocalComandas(prev => prev.map(c => c.id === comanda.id ? updatedComanda : c))
                         }
                         // Agregar a produccion solo este producto
                         onMoveToProduccion({
