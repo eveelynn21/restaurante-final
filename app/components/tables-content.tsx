@@ -25,32 +25,10 @@ export default function TablesContent() {
   const [selectedLocation, setSelectedLocation] = useState<{ id: number; name: string } | null>(null)
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
-  const [products, setProducts] = useState<any[]>([])
   const router = useRouter()
 
   // Estado para mostrar/ocultar el sidebar de categorías
   const [showCategories, setShowCategories] = useState(false)
-
-  // Función para obtener productos
-  const fetchProducts = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) return
-      
-      const response = await fetch('/api/products?pageSize=1000', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data.products || [])
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error)
-    }
-  }
 
   // Cargar ubicación seleccionada al iniciar
   useEffect(() => {
@@ -62,7 +40,6 @@ export default function TablesContent() {
         console.error('Error parsing selected location:', error)
       }
     }
-    fetchProducts()
   }, [])
 
   const handleLocationSelected = (location: { id: number; name: string }) => {
@@ -268,7 +245,6 @@ export default function TablesContent() {
               onTableSelect={handleTableSelect} 
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              products={products}
             />
           </div>
         </div>

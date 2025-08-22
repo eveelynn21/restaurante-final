@@ -19,7 +19,7 @@ export default function AreaOrdersContent() {
   const fetchAreas = async () => {
     const res = await fetch("/api/order-areas")
     const data = await res.json()
-    setAreas(data.areas || [])
+    setAreas(data.data || [])
   }
 
   useEffect(() => {

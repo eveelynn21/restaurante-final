@@ -63,7 +63,6 @@ export default function ProductManagement() {
   const [comboProducts, setComboProducts] = useState<any[]>([])
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const [updatedComboIds, setUpdatedComboIds] = useState<number[]>([])
-  // Estado para las pestañas
   const [activeTab, setActiveTab] = useState<'products' | 'combos'>('products')
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
@@ -546,26 +545,21 @@ export default function ProductManagement() {
     }
   }
 
-  // Filtrar productos que NO son combos para la sección de productos individuales
-  const individualProducts = products.filter(product => 
-    !product.combo || (Array.isArray(product.combo) && product.combo.length === 0)
-  )
-  
-  // Filtrar productos que SÍ son combos para la sección de combos
-  const comboProductsList = products.filter(product => 
-    product.combo && Array.isArray(product.combo) && product.combo.length > 0
-  )
-  
-  const filteredProducts = individualProducts.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filter products based on active tab
+  const getFilteredProducts = () => {
+    const filtered = products.filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    
+    if (activeTab === 'products') {
+      return filtered.filter(product => !isProductCombo(product))
+    } else {
+      return filtered.filter(product => isProductCombo(product))
+    }
+  }
 
-  const filteredCombos = comboProductsList.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
+  const filteredProducts = getFilteredProducts()
 
 
   return (
@@ -609,50 +603,68 @@ export default function ProductManagement() {
               </Button>
             </div>
           </div>
-          
-
         </div>
 
-        {/* Tabs para alternar entre Productos y Combos */}
+        {/* Tabs Navigation */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="border-b border-gray-100">
-            <div className="flex">
-              <button
-                onClick={() => setActiveTab('products')}
-                className={`flex-1 px-6 py-4 text-center font-medium transition-colors duration-200 ${
-                  activeTab === 'products'
-                    ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <Package className="inline-block mr-2 h-5 w-5" />
-                Productos Individuales ({filteredProducts.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('combos')}
-                className={`flex-1 px-6 py-4 text-center font-medium transition-colors duration-200 ${
-                  activeTab === 'combos'
-                    ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <Package className="inline-block mr-2 h-5 w-5" />
+          <div className="flex border-b border-gray-100">
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors duration-200 ${
+                activeTab === 'products'
+                  ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Package className="h-5 w-5" />
+                Productos Individuales
+                <Badge variant="secondary" className="ml-2">
+                  {products.filter(p => !isProductCombo(p)).length}
+                </Badge>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('combos')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors duration-200 ${
+                activeTab === 'combos'
+                  ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Package className="h-5 w-5" />
                 Combos
-              </button>
-            </div>
+                <Badge variant="secondary" className="ml-2">
+                  {products.filter(p => isProductCombo(p)).length}
+                </Badge>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Products List con diseño mejorado */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-800">
+              {activeTab === 'products' ? 'Productos Individuales' : 'Combos'} ({filteredProducts.length})
+            </h2>
+            <p className="text-gray-600 mt-1">
+              {activeTab === 'products' 
+                ? 'Productos individuales disponibles para venta' 
+                : 'Combos que incluyen múltiples productos'
+              }
+            </p>
           </div>
           
-          {activeTab === 'products' ? (
-            // Contenido de Productos Individuales
-            <>
-              {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
-                    <p className="text-gray-600 font-medium">Cargando productos...</p>
-                  </div>
-                </div>
-              ) : filteredProducts.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
+                <p className="text-gray-600 font-medium">Cargando productos...</p>
+              </div>
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="divide-y divide-gray-100">
               {filteredProducts.map((product) => (
                 <div key={product.id || product.sku} className="group hover:bg-gray-50 transition-colors duration-200">
@@ -672,7 +684,7 @@ export default function ProductManagement() {
                       )}
                       <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <div className="bg-white rounded-full p-1 shadow-lg">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className={`w-2 h-2 rounded-full ${isProductCombo(product) ? 'bg-orange-500' : 'bg-green-500'}`}></div>
                         </div>
                       </div>
                     </div>
@@ -681,9 +693,16 @@ export default function ProductManagement() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-purple-600 transition-colors duration-200">
-                            {product.name}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-xl text-gray-800 group-hover:text-purple-600 transition-colors duration-200">
+                              {product.name}
+                            </h3>
+                            {isProductCombo(product) && (
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 px-2 py-1 rounded-full text-xs font-medium">
+                                Combo
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center gap-4">
                             <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 px-3 py-1 rounded-full text-sm font-medium">
                               SKU: {product.sku}
@@ -733,22 +752,22 @@ export default function ProductManagement() {
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Package className="h-12 w-12 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">No se encontraron productos</h3>
-              <p className="text-gray-600 mb-6">Intenta crear un nuevo producto usando el botón "Nuevo Producto"</p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                No se encontraron {activeTab === 'products' ? 'productos individuales' : 'combos'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {activeTab === 'products' 
+                  ? 'Intenta crear un nuevo producto usando el botón "Nuevo Producto"' 
+                  : 'Intenta crear un nuevo combo usando el botón "Nuevo Combo"'
+                }
+              </p>
               <Button 
-                onClick={handleCreateProduct}
+                onClick={activeTab === 'products' ? handleCreateProduct : () => setShowComboModal(true)}
                 className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <Plus className="mr-2 h-5 w-5" />
-                Crear Primer Producto
+                {activeTab === 'products' ? 'Crear Primer Producto' : 'Crear Primer Combo'}
               </Button>
-            </div>
-          )}
-            </>
-          ) : (
-            // Contenido de Combos
-            <div className="p-6">
-              <ComboManagement searchTerm={searchTerm} />
             </div>
           )}
         </div>

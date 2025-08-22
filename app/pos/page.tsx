@@ -26,7 +26,6 @@ function POSContent() {
   const [showClientDialog, setShowClientDialog] = useState(false)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [isEditing, setIsEditing] = useState(false)
-  const [products, setProducts] = useState<any[]>([])
 
 
   const searchParams = useSearchParams()
@@ -36,27 +35,6 @@ function POSContent() {
 
   const router = useRouter()
   const { loadCartFromTransaction } = useCart()
-
-  // Función para obtener productos
-  const fetchProducts = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) return
-      
-      const response = await fetch('/api/products?pageSize=1000', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data.products || [])
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error)
-    }
-  }
 
   useEffect(() => {
     console.log('🚀 useEffect inicial ejecutándose...')
@@ -88,7 +66,6 @@ function POSContent() {
       }
     }
     fetchDefaultClient()
-    fetchProducts()
   }, [])
 
 
@@ -308,7 +285,7 @@ function POSContent() {
               <ProductGrid category={selectedCategory} searchQuery={searchQuery} compact={false} />
             </div>
           </main>
-          <CartSidebar searchQuery={searchQuery} setSearchQuery={setSearchQuery} products={products} />
+          <CartSidebar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         </div>
       </>
     </CartProvider>

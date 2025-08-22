@@ -197,6 +197,8 @@ export function TableProvider({ children }: { children: ReactNode }) {
                   createdAt: new Date(table.currentOrder.createdAt),
                 }
               : undefined,
+            // Preservar el status ocupado si hay pedido
+            status: table.currentOrder ? "occupied" as const : table.status || "available" as const
           }))
           setTables(tablesWithDates)
           console.log(`✅ Tables loaded from localStorage for business ${businessId}:`, tablesWithDates.length)
@@ -220,21 +222,47 @@ export function TableProvider({ children }: { children: ReactNode }) {
             headers: { 'Authorization': `Bearer ${token}` }
           })
           const data = await res.json()
+          
+          // Intentar cargar pedidos existentes desde localStorage
+          const storageKey = `restaurant-tables-db-${businessId}`
+          const savedTables = localStorage.getItem(storageKey)
+          let existingOrders: Record<number, TableOrder> = {}
+          
+          if (savedTables) {
+            try {
+              const parsedTables = JSON.parse(savedTables)
+              existingOrders = parsedTables.reduce((acc: Record<number, TableOrder>, table: Table) => {
+                if (table.currentOrder) {
+                  acc[table.id] = table.currentOrder
+                }
+                return acc
+              }, {})
+            } catch (error) {
+              console.error("❌ Failed to parse existing orders:", error)
+            }
+          }
+          
           // Mapear para que cada mesa tenga al menos id y number (usando name como number si es necesario)
-          const mappedTables = (data.tables || []).map((t: any, index: number) => ({
-            id: t.id,
-            number: t.name || t.number || t.id,
-            name: t.name || t.number || t.id,
-            x: 50 + (index * 120) % 600,
-            y: 50 + Math.floor(index / 5) * 120,
-            width: 100,
-            height: 100,
-            seats: 4,
-            status: "available" as const,
-            shape: "rectangle" as const
-          }))
+          const mappedTables = (data.tables || []).map((t: any, index: number) => {
+            const existingOrder = existingOrders[t.id]
+            return {
+              id: t.id,
+              number: t.name || t.number || t.id,
+              name: t.name || t.number || t.id,
+              x: 50 + (index * 120) % 600,
+              y: 50 + Math.floor(index / 5) * 120,
+              width: 100,
+              height: 100,
+              seats: 4,
+              // Preservar status ocupado si hay pedido
+              status: existingOrder ? "occupied" as const : "available" as const,
+              shape: "rectangle" as const,
+              // Preservar pedidos existentes
+              currentOrder: existingOrder || undefined
+            }
+          })
           setTables(mappedTables)
-          console.log('✅ Mesas cargadas para business_id:', data.business_id, 'location_id:', data.location_id)
+          console.log('✅ Mesas cargadas para business_id:', data.business_id, 'location_id:', data.location_id, 'con pedidos preservados')
         } catch (error) {
           console.error('Error cargando mesas desde la base de datos:', error)
         }
@@ -250,7 +278,17 @@ export function TableProvider({ children }: { children: ReactNode }) {
     if (tables.length > 0 && businessId) {
       try {
         const storageKey = `restaurant-tables-db-${businessId}`
-        localStorage.setItem(storageKey, JSON.stringify(tables))
+        // Guardar con fechas serializadas correctamente
+        const tablesToSave = tables.map(table => ({
+          ...table,
+          createdAt: table.createdAt?.toISOString(),
+          updatedAt: table.updatedAt?.toISOString(),
+          currentOrder: table.currentOrder ? {
+            ...table.currentOrder,
+            createdAt: table.currentOrder.createdAt?.toISOString()
+          } : undefined
+        }))
+        localStorage.setItem(storageKey, JSON.stringify(tablesToSave))
         console.log(`💾 Tables saved to localStorage for business ${businessId}`)
       } catch (error) {
         console.error("❌ Failed to save tables to localStorage:", error)
@@ -279,6 +317,16 @@ export function TableProvider({ children }: { children: ReactNode }) {
     const businessId = getBusinessIdFromToken()
     if (businessId) {
       const storageKey = `restaurant-tables-db-${businessId}`
+      
+      // Guardar los pedidos actuales antes de limpiar
+      const currentTables = tables
+      const currentOrders = currentTables.reduce((acc, table) => {
+        if (table.currentOrder) {
+          acc[table.id] = table.currentOrder
+        }
+        return acc
+      }, {} as Record<number, TableOrder>)
+      
       localStorage.removeItem(storageKey)
       console.log(`🧹 Cleared localStorage for business ${businessId}`)
       
@@ -289,30 +337,33 @@ export function TableProvider({ children }: { children: ReactNode }) {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const data = await res.json()
-        const mappedTables = (data.tables || []).map((t: any, index: number) => ({
-          id: t.id,
-          number: t.name || t.number || t.id,
-          name: t.name || t.number || t.id,
-          x: 50 + (index * 120) % 600,
-          y: 50 + Math.floor(index / 5) * 120,
-          width: 100,
-          height: 100,
-          seats: 4,
-          status: "available" as const,
-          shape: "rectangle" as const
-        }))
+        const mappedTables = (data.tables || []).map((t: any, index: number) => {
+          const existingOrder = currentOrders[t.id]
+          return {
+            id: t.id,
+            number: t.name || t.number || t.id,
+            name: t.name || t.number || t.id,
+            x: 50 + (index * 120) % 600,
+            y: 50 + Math.floor(index / 5) * 120,
+            width: 100,
+            height: 100,
+            seats: 4,
+            // Preservar status ocupado si hay pedido
+            status: existingOrder ? "occupied" as const : "available" as const,
+            shape: "rectangle" as const,
+            // Preservar pedidos existentes
+            currentOrder: existingOrder || undefined
+          }
+        })
         setTables(mappedTables)
-        console.log('✅ Tables reloaded from database')
+        console.log('✅ Tables reloaded from database with preserved orders')
       } catch (error) {
         console.error('Error reloading tables:', error)
       }
     }
   }
 
-  // Ejecutar limpieza inmediatamente
-  useEffect(() => {
-    clearLocalStorageAndReload()
-  }, [])
+
 
   const addTable = async (newTable: Omit<Table, "id">) => {
     try {
@@ -430,7 +481,7 @@ export function TableProvider({ children }: { children: ReactNode }) {
 
           const updatedItems = [...currentOrder.items, uniqueItem]
 
-          const total = updatedItems.reduce((sum, item) => sum + item.sell_price_inc_tax * item.quantity, 0)
+          const total = updatedItems.reduce((sum, item) => sum + (Number(item.sell_price_inc_tax) || 0) * (Number(item.quantity) || 0), 0)
 
           const updatedTable = {
             ...table,
@@ -455,7 +506,7 @@ export function TableProvider({ children }: { children: ReactNode }) {
       prevTables.map((table) => {
         if (table.id === tableId && table.currentOrder) {
           const updatedItems = table.currentOrder.items.filter((item) => item.id !== productId)
-          const total = updatedItems.reduce((sum, item) => sum + item.sell_price_inc_tax * item.quantity, 0)
+          const total = updatedItems.reduce((sum, item) => sum + (Number(item.sell_price_inc_tax) || 0) * (Number(item.quantity) || 0), 0)
 
           const updatedTable = {
             ...table,
@@ -487,7 +538,7 @@ export function TableProvider({ children }: { children: ReactNode }) {
           const updatedItems = table.currentOrder.items.map((item) =>
             item.id === productId ? { ...item, quantity } : item,
           )
-          const total = updatedItems.reduce((sum, item) => sum + item.sell_price_inc_tax * item.quantity, 0)
+          const total = updatedItems.reduce((sum, item) => sum + (Number(item.sell_price_inc_tax) || 0) * (Number(item.quantity) || 0), 0)
 
           const updatedTable = {
             ...table,
@@ -684,7 +735,7 @@ export function TableProvider({ children }: { children: ReactNode }) {
                 updatedItems = [...bill.items, newBillItem]
               }
 
-              const subtotal = updatedItems.reduce((sum, item) => sum + item.product.sell_price_inc_tax * item.quantity, 0)
+              const subtotal = updatedItems.reduce((sum, item) => sum + (Number(item.product.sell_price_inc_tax) || 0) * (Number(item.quantity) || 0), 0)
               const tax = subtotal * 0.1
               const total = subtotal + tax
 
@@ -753,7 +804,7 @@ export function TableProvider({ children }: { children: ReactNode }) {
                 updatedItems = [...bill.items, sharedBillItem]
               }
 
-              const subtotal = updatedItems.reduce((sum, item) => sum + item.product.sell_price_inc_tax * item.quantity, 0)
+              const subtotal = updatedItems.reduce((sum, item) => sum + (Number(item.product.sell_price_inc_tax) || 0) * (Number(item.quantity) || 0), 0)
               const tax = subtotal * 0.1
               const total = subtotal + tax
 

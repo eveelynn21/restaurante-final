@@ -122,7 +122,7 @@ export default function DraggableTable({
   }
 
   const orderItems = table.currentOrder?.items || []
-  const itemCount = orderItems.reduce((sum, item) => sum + item.quantity, 0)
+  const itemCount = orderItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
 
   return (
     <div
@@ -169,9 +169,9 @@ export default function DraggableTable({
                   alt={item.name}
                   className="w-4 h-4 object-cover rounded border"
                 />
-                {item.quantity > 1 && (
+                {(Number(item.quantity) || 0) > 1 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-3 h-3 flex items-center justify-center leading-none">
-                    {item.quantity}
+                    {Number(item.quantity) || 0}
                   </span>
                 )}
               </div>

@@ -11,18 +11,85 @@ import { formatPrice } from "@/lib/format-price"
 type CartSidebarProps = {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
-  products?: any[]; // Lista de productos para mostrar nombres en combos
 }
 
-export default function CartSidebar({ searchQuery, setSearchQuery, products = [] }: CartSidebarProps) {
+export default function CartSidebar({ searchQuery, setSearchQuery }: CartSidebarProps) {
   const router = useRouter()
   const { cart, removeFromCart, updateQuantity, cartTotal, itemCount, isLoading } = useCart()
   const [expandedCombos, setExpandedCombos] = useState<Set<number>>(new Set())
+  const [comboProducts, setComboProducts] = useState<{[key: number]: any[]}>({})
   
   console.log('🛒 CartSidebar - Estado del carrito:', cart)
   console.log('🛒 CartSidebar - Cantidad de items:', itemCount)
   console.log('🛒 CartSidebar - Total del carrito:', cartTotal)
   console.log('🛒 CartSidebar - isLoading:', isLoading)
+
+  // Helper function to check if a product is a combo
+  const isProductCombo = (item: any): boolean => {
+    if (!item.combo) return false
+    try {
+      const combo = typeof item.combo === 'string' ? JSON.parse(item.combo) : item.combo
+      return Array.isArray(combo) && combo.length > 0
+    } catch {
+      return false
+    }
+  }
+
+  // Load combo products when a combo is expanded
+  const loadComboProducts = async (itemId: number, comboData: any) => {
+    if (comboProducts[itemId]) return // Already loaded
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+
+      // Get all products to find combo components
+      const response = await fetch('/api/products?page=1&pageSize=1000', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const allProducts = data.products || []
+        
+        // Parse combo data
+        const comboIds = typeof comboData === 'string' ? JSON.parse(comboData) : comboData
+        
+        // Find combo products
+        const comboProductDetails = comboIds.map((productId: number) => {
+          const product = allProducts.find((p: any) => p.id === productId)
+          return product ? {
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            image: product.image,
+            price: product.sell_price_inc_tax
+          } : null
+        }).filter(Boolean)
+        
+        setComboProducts(prev => ({
+          ...prev,
+          [itemId]: comboProductDetails
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading combo products:', error)
+    }
+  }
+
+  const toggleComboExpansion = (itemId: number, comboData: any) => {
+    setExpandedCombos(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+        // Load combo products when expanding
+        loadComboProducts(itemId, comboData)
+      }
+      return newSet
+    })
+  }
 
   const handleCheckout = () => {
     if (cart.length === 0) return
@@ -44,27 +111,6 @@ export default function CartSidebar({ searchQuery, setSearchQuery, products = []
     
     localStorage.setItem("temp-checkout-order", JSON.stringify(tempOrder))
     router.push("/table-checkout")
-  }
-
-  const toggleComboExpansion = (itemId: number) => {
-    setExpandedCombos(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId)
-      } else {
-        newSet.add(itemId)
-      }
-      return newSet
-    })
-  }
-
-  const isCombo = (item: any) => {
-    return item.combo && Array.isArray(item.combo) && item.combo.length > 0
-  }
-
-  const getProductName = (productId: number) => {
-    const product = products.find(p => p.id === productId)
-    return product ? product.name : `Producto ${productId}`
   }
 
   return (
@@ -127,12 +173,12 @@ export default function CartSidebar({ searchQuery, setSearchQuery, products = []
                         <h3 className="font-medium text-foreground text-sm line-clamp-1 group-hover:text-primary transition-colors">
                           {item.name}
                         </h3>
-                        {isCombo(item) && (
+                        {isProductCombo(item) && (
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-4 w-4 p-0 text-muted-foreground hover:text-primary transition-colors"
-                            onClick={() => toggleComboExpansion(item.id!)}
+                            onClick={() => toggleComboExpansion(item.id!, item.combo)}
                           >
                             {expandedCombos.has(item.id!) ? (
                               <ChevronUp className="h-3 w-3" />
@@ -149,24 +195,6 @@ export default function CartSidebar({ searchQuery, setSearchQuery, products = []
                     <p className="text-xs text-muted-foreground mb-2">
                       {formatPrice(Number(item.sell_price_inc_tax))} each
                     </p>
-                    
-                    {/* Productos del combo expandido */}
-                    {isCombo(item) && expandedCombos.has(item.id!) && (
-                      <div className="mb-2 pl-4 border-l-2 border-primary/20">
-                        <p className="text-xs text-muted-foreground mb-1 font-medium">Productos incluidos:</p>
-                        <div className="space-y-1">
-                          {item.combo.map((productId: number, comboIndex: number) => (
-                            <div key={comboIndex} className="flex items-center gap-2">
-                              <div className="w-1 h-1 bg-primary/40 rounded-full"></div>
-                              <span className="text-xs text-muted-foreground">
-                                {getProductName(productId)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 bg-accent/30 rounded-md p-1">
                         <Button
@@ -198,6 +226,30 @@ export default function CartSidebar({ searchQuery, setSearchQuery, products = []
                     </div>
                   </div>
                 </div>
+                
+                {/* Combo products expanded view */}
+                {isProductCombo(item) && expandedCombos.has(item.id!) && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Productos incluidos:</h4>
+                      {comboProducts[item.id!] ? (
+                        comboProducts[item.id!].map((comboProduct: any, comboIndex: number) => (
+                          <div key={comboIndex} className="flex items-center gap-2 pl-4">
+                            <div className="w-2 h-2 bg-primary/30 rounded-full"></div>
+                            <span className="text-xs text-muted-foreground">
+                              {comboProduct.name}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center justify-center py-2">
+                          <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                          <span className="text-xs text-muted-foreground ml-2">Cargando productos...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -2,14 +2,15 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Plus, Move, Hand, Settings, Receipt, Trash2, Minus, User, Circle, ShoppingCart, Search, X, ChevronDown, ChevronUp } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Move, Hand, Settings, Receipt, Trash2, Minus, User, Circle, ShoppingCart, Search, X, ChevronDown, ChevronUp, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTables, type Table } from "../context/table-context"
+import { useComandas } from "../context/comandas-context"
 import DraggableTable from "./draggable-table"
 import OrderTickets from "./order-tickets"
 import SplitBill from "./split-bill"
@@ -38,7 +39,11 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
     clearTableOrder,
     assignWaiterToTable,
     addTable,
+    getOrderItemsByArea,
   } = useTables()
+  
+  const { addComanda, markItemsAsSent, isItemSent } = useComandas()
+  
   const [isDragMode, setIsDragMode] = useState(false)
   const [selectedTable, setSelectedTable] = useState<Table | null>(null)
   const [isDraggingProduct, setIsDraggingProduct] = useState(false)
@@ -46,6 +51,27 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
   const router = useRouter()
   const [waiterName, setWaiterName] = useState("")
   const [expandedCombos, setExpandedCombos] = useState<Set<number>>(new Set())
+  const [comboProducts, setComboProducts] = useState<{[key: number]: any[]}>({})
+  const [areas, setAreas] = useState<{ id: number, name: string }[]>([])
+
+  // Cargar áreas al inicializar
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
+          const response = await fetch('/api/order-areas', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          const data = await response.json()
+          setAreas(data.data || [])
+        }
+      } catch (error) {
+        console.error('Error fetching areas:', error)
+      }
+    }
+    fetchAreas()
+  }, [])
 
   const handleTableClick = (table: Table) => {
     if (!isDragMode) {
@@ -85,6 +111,66 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
     }
   }
 
+  // Función para enviar todas las comandas de una vez
+  const handleSendAllOrders = (table: Table) => {
+    if (!table.currentOrder || table.currentOrder.items.length === 0) return
+
+    // Obtener items agrupados por área
+    const itemsByArea = getOrderItemsByArea(table.id)
+    
+    // Enviar comandas para cada área
+    Object.entries(itemsByArea).forEach(([areaName, items]) => {
+      if (items.length === 0) return
+
+      // Filtrar solo items no enviados
+      const unsentItems = items.filter(item => 
+        !isItemSent(String(table.id), areaName, String((item as any)._orderItemId || item.id))
+      )
+      
+      if (unsentItems.length === 0) return
+
+      // Agrupar productos iguales
+      const groupItems = (items: any[]) => {
+        const grouped: Record<string, any> = {};
+        items.forEach(item => {
+          if (!item.id) return;
+          const key = String(item.id);
+          if (!grouped[key]) {
+            grouped[key] = { ...item };
+          } else {
+            grouped[key].quantity += item.quantity;
+          }
+        });
+        return Object.values(grouped);
+      };
+
+      // Crear la comanda
+      const comanda = {
+        id: `${table.id}-${areaName}-${Date.now()}`,
+        tableNumber: String(table.number),
+        tableId: String(table.id),
+        waiter: table.currentOrder?.waiter || table.assignedWaiter || "Sin asignar",
+        items: groupItems(unsentItems).map(item => ({ ...item, status: 'pending' })),
+        createdAt: new Date(),
+        status: "pending" as const,
+        area: areaName,
+        estimatedTime: unsentItems.length * 5
+      }
+
+      console.log('Enviando comanda:', comanda)
+
+      // Agregar la comanda al contexto
+      addComanda(comanda)
+      
+      // Marcar los items como enviados
+      const itemIds = unsentItems.map(item => String((item as any)._orderItemId || item.id))
+      markItemsAsSent(String(table.id), areaName, itemIds)
+    })
+
+    // Mostrar confirmación
+    alert('Pedido enviado a todas las áreas')
+  }
+
   const handleCanvasDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDraggingProduct(true)
@@ -98,27 +184,41 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
   const handleCanvasDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDraggingProduct(false)
-  }
-
-  const toggleComboExpansion = (itemId: number) => {
-    setExpandedCombos(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId)
-      } else {
-        newSet.add(itemId)
+    
+    const productData = e.dataTransfer.getData("application/json")
+    if (productData) {
+      try {
+        const product = JSON.parse(productData)
+        console.log("Producto arrastrado:", product)
+        
+        // Encontrar la mesa más cercana al punto de drop
+        const rect = e.currentTarget.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        
+        let closestTable: Table | null = null
+        let minDistance = Infinity
+        
+        tables.forEach(table => {
+          const distance = Math.sqrt(
+            Math.pow(x - table.x, 2) + Math.pow(y - table.y, 2)
+          )
+          if (distance < minDistance) {
+            minDistance = distance
+            closestTable = table
+          }
+        })
+        
+        if (closestTable && minDistance < 100) {
+          console.log("Agregando producto a mesa:", (closestTable as any).number)
+          // Note: addProductToTable function needs to be implemented in table context
+          // For now, we'll just log the action
+          console.log("Would add product to table:", (closestTable as any).id, product)
+        }
+      } catch (error) {
+        console.error("Error parsing dragged product:", error)
       }
-      return newSet
-    })
-  }
-
-  const isCombo = (item: any) => {
-    return item.combo && Array.isArray(item.combo) && item.combo.length > 0
-  }
-
-  const getProductName = (productId: number) => {
-    const product = products.find(p => p.id === productId)
-    return product ? product.name : `Producto ${productId}`
+    }
   }
 
   const getStatusStats = () => {
@@ -131,7 +231,7 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
     return stats
   }
 
-  const stats = getStatusStats()
+    const stats = getStatusStats()
 
   // Verificar si hay comandas pendientes de imprimir
   const hasPendingTickets = (table: Table) => {
@@ -146,6 +246,84 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
   // Verificar si la cuenta está dividida
   const isSplitBill = (table: Table) => {
     return table.currentOrder?.splitMode || false
+  }
+
+  // Helper function to check if a product is a combo
+  const isProductCombo = (item: any): boolean => {
+    if (!item.combo) return false
+    try {
+      const combo = typeof item.combo === 'string' ? JSON.parse(item.combo) : item.combo
+      return Array.isArray(combo) && combo.length > 0
+    } catch {
+      return false
+    }
+  }
+
+  // Load combo products when a combo is expanded
+  const loadComboProducts = async (itemId: number, comboData: any) => {
+    if (comboProducts[itemId]) return // Already loaded
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+
+      // Get all products to find combo components
+      const response = await fetch('/api/products?page=1&pageSize=1000', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const allProducts = data.products || []
+        
+        // Parse combo data
+        const comboIds = typeof comboData === 'string' ? JSON.parse(comboData) : comboData
+        
+        // Find combo products
+        const comboProductDetails = comboIds.map((productId: number) => {
+          const product = allProducts.find((p: any) => p.id === productId)
+          return product ? {
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            image: product.image,
+            price: product.sell_price_inc_tax
+          } : null
+        }).filter(Boolean)
+        
+        setComboProducts(prev => ({
+          ...prev,
+          [itemId]: comboProductDetails
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading combo products:', error)
+    }
+  }
+
+  const toggleComboExpansion = (itemId: number, comboData: any) => {
+    setExpandedCombos(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+        // Load combo products when expanding
+        loadComboProducts(itemId, comboData)
+      }
+      return newSet
+    })
+  }
+
+  // Helper function to check if an item has been sent to any area
+  const isItemSentToAnyArea = (item: any, table: Table) => {
+    if (!table.currentOrder) return false
+    
+    const itemsByArea = getOrderItemsByArea(table.id)
+    return Object.entries(itemsByArea).some(([areaName, items]) => {
+      const foundItem = items.find(i => (i as any)._orderItemId === (item as any)._orderItemId)
+      return foundItem && isItemSent(String(table.id), areaName, String((item as any)._orderItemId || item.id))
+    })
   }
 
   return (
@@ -306,16 +484,8 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
             </CardHeader>
             <CardContent className="pt-0">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-                <TabsList className="grid w-full grid-cols-3 rounded-xl bg-primary/5">
+                <TabsList className="grid w-full grid-cols-2 rounded-xl bg-primary/5">
                   <TabsTrigger value="order">Pedido</TabsTrigger>
-                  <TabsTrigger value="tickets" className="relative">
-                    Comandas
-                    {hasPendingTickets(currentSelectedTable) && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                        !
-                      </span>
-                    )}
-                  </TabsTrigger>
                   <TabsTrigger value="split" className="relative">
                     Dividir
                     {currentSelectedTable && isSplitBill(currentSelectedTable) && (
@@ -347,7 +517,7 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-medium">Pedido Actual</p>
                         <Badge variant="outline">
-                          {currentSelectedTable.currentOrder.items.reduce((sum, item) => sum + item.quantity, 0)} items
+                          {currentSelectedTable.currentOrder.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)} items
                         </Badge>
                       </div>
 
@@ -360,65 +530,65 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
                             if (!acc[key]) {
                               acc[key] = { ...item };
                             } else {
-                              acc[key].quantity += item.quantity;
+                              acc[key].quantity += (Number(item.quantity) || 0);
                             }
                             return acc;
                           }, {} as Record<string, typeof currentSelectedTable.currentOrder.items[0]>)
                         ).map((item, index) => (
-                                                    <div key={item.id + '-' + index} className="p-2 border rounded">
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={item.image || "/placeholder.svg"}
-                                alt={item.name}
-                                className="w-10 h-10 object-cover rounded"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium text-sm truncate">{item.name}</p>
-                                  {isCombo(item) && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-4 w-4 p-0 text-muted-foreground hover:text-primary transition-colors"
-                                      onClick={() => toggleComboExpansion(item.id!)}
-                                    >
-                                      {expandedCombos.has(item.id!) ? (
-                                        <ChevronUp className="h-3 w-3" />
-                                      ) : (
-                                        <ChevronDown className="h-3 w-3" />
-                                      )}
-                                    </Button>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">{formatPrice(Number(item.sell_price_inc_tax))}</p>
+                          <div key={item.id + '-' + index} className="flex items-center gap-2 p-2 border rounded">
+                            <img
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm truncate">{item.name}</p>
+                                {isProductCombo(item) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 p-0 text-muted-foreground hover:text-primary transition-colors"
+                                    onClick={() => toggleComboExpansion(item.id!, (item as any).combo)}
+                                  >
+                                    {expandedCombos.has(item.id!) ? (
+                                      <ChevronUp className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronDown className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                )}
+                                {isItemSentToAnyArea(item, currentSelectedTable) && (
+                                  <div className="flex items-center gap-1 text-green-600">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span className="text-xs font-medium">Enviado</span>
+                                  </div>
+                                )}
                               </div>
+                              <p className="text-xs text-muted-foreground">{formatPrice(Number(item.sell_price_inc_tax))}</p>
                             </div>
-                            
-                            {/* Controles de cantidad y eliminar */}
-                            <div className="flex items-center justify-between mt-2">
-                                                            <div className="flex items-center gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => {
-                                    updateProductQuantityInTable(currentSelectedTable.id, item.id!, item.quantity - 1)
-                                  }}
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-8 text-center text-sm">{item.quantity}</span>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => {
-                                    updateProductQuantityInTable(currentSelectedTable.id, item.id!, item.quantity + 1)
-                                  }}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  updateProductQuantityInTable(currentSelectedTable.id, item.id!, (Number(item.quantity) || 0) - 1)
+                                }}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 text-center text-sm">{Number(item.quantity) || 0}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  updateProductQuantityInTable(currentSelectedTable.id, item.id!, (Number(item.quantity) || 0) + 1)
+                                }}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -428,24 +598,44 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
-                            
-                            {/* Productos del combo expandido */}
-                            {isCombo(item) && expandedCombos.has(item.id!) && (
-                              <div className="w-full mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                <p className="text-xs text-gray-600 mb-2 font-semibold">Productos incluidos:</p>
-                                <div className="space-y-1.5">
-                                  {item.combo.map((productId: number, comboIndex: number) => (
-                                    <div key={comboIndex} className="flex items-center gap-2">
-                                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                                      <span className="text-xs text-gray-700 font-medium">
-                                        {getProductName(productId)}
+                          </div>
+                        ))}
+                        
+                        {/* Combo products expanded view */}
+                        {Object.values(
+                          currentSelectedTable.currentOrder.items.reduce((acc, item) => {
+                            if (!item.id) return acc;
+                            const key = String(item.id);
+                            if (!acc[key]) {
+                              acc[key] = { ...item };
+                            } else {
+                              acc[key].quantity += (Number(item.quantity) || 0);
+                            }
+                            return acc;
+                          }, {} as Record<string, typeof currentSelectedTable.currentOrder.items[0]>)
+                        ).map((item, index) => (
+                          isProductCombo(item) && expandedCombos.has(item.id!) && (
+                            <div key={`combo-${item.id}-${index}`} className="ml-4 mt-2 p-2 bg-gray-50 rounded border-l-2 border-primary/30">
+                              <div className="space-y-1">
+                                <h4 className="text-xs font-medium text-muted-foreground mb-2">Productos incluidos:</h4>
+                                {comboProducts[item.id!] ? (
+                                  comboProducts[item.id!].map((comboProduct: any, comboIndex: number) => (
+                                    <div key={comboIndex} className="flex items-center gap-2 pl-2">
+                                      <div className="w-2 h-2 bg-primary/30 rounded-full"></div>
+                                      <span className="text-xs text-muted-foreground">
+                                        {comboProduct.name}
                                       </span>
                                     </div>
-                                  ))}
-                                </div>
+                                  ))
+                                ) : (
+                                  <div className="flex items-center justify-center py-2">
+                                    <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                                    <span className="text-xs text-muted-foreground ml-2">Cargando productos...</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )
                         ))}
                       </div>
 
@@ -456,17 +646,28 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
                         <span>{formatPrice(Number(currentSelectedTable.currentOrder.total || 0))}</span>
                       </div>
 
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          className="flex-1"
-                          onClick={() => currentSelectedTable && handleCheckoutTable(currentSelectedTable)}
-                          disabled={!currentSelectedTable || isSplitBill(currentSelectedTable)}
+                      <div className="space-y-2 mt-4">
+                        <div className="flex gap-2">
+                          <Button
+                            className="flex-1"
+                            onClick={() => currentSelectedTable && handleCheckoutTable(currentSelectedTable)}
+                            disabled={!currentSelectedTable || isSplitBill(currentSelectedTable)}
+                          >
+                            <Receipt className="h-4 w-4 mr-2" />
+                            {currentSelectedTable && isSplitBill(currentSelectedTable) ? "Cuenta Dividida" : "Facturar"}
+                          </Button>
+                          <Button variant="outline" onClick={() => currentSelectedTable && clearTableOrder(currentSelectedTable.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Button 
+                          variant="outline"
+                          onClick={() => currentSelectedTable && handleSendAllOrders(currentSelectedTable)}
+                          disabled={!currentSelectedTable || !currentSelectedTable.currentOrder || currentSelectedTable.currentOrder.items.length === 0}
+                          className="w-full bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                         >
-                          <Receipt className="h-4 w-4 mr-2" />
-                          {currentSelectedTable && isSplitBill(currentSelectedTable) ? "Cuenta Dividida" : "Facturar"}
-                        </Button>
-                        <Button variant="outline" onClick={() => currentSelectedTable && clearTableOrder(currentSelectedTable.id)}>
-                          <Trash2 className="h-4 w-4" />
+                          <Send className="h-4 w-4 mr-2" />
+                          Realizar Pedido
                         </Button>
                       </div>
                     </div>
@@ -542,9 +743,6 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
                       </div>
                     )}
                   </div>
-                </TabsContent>
-                <TabsContent value="tickets" className="mt-4">
-                  {currentSelectedTable && <OrderTickets table={currentSelectedTable} />}
                 </TabsContent>
                 <TabsContent value="split" className="mt-4">
                   {currentSelectedTable && <SplitBill table={currentSelectedTable} />}

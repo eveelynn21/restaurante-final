@@ -45,17 +45,16 @@ const PAGE_SIZE = 1000
 
 interface ComboManagementProps {
   modalMode?: boolean
-  searchTerm?: string
 }
 
-export default function ComboManagement({ modalMode = false, searchTerm = '' }: ComboManagementProps) {
+export default function ComboManagement({ modalMode = false }: ComboManagementProps) {
   const [combos, setCombos] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCombo, setEditingCombo] = useState<any | null>(null)
-  const [internalSearchTerm, setInternalSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
   const [imageSource, setImageSource] = useState<ImageSource>('url')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
@@ -412,12 +411,9 @@ export default function ComboManagement({ modalMode = false, searchTerm = '' }: 
     }
   }
 
-  // Usar el searchTerm externo si está disponible, sino usar el interno
-  const currentSearchTerm = searchTerm || internalSearchTerm
-  
   const filteredCombos = combos.filter(combo =>
-    combo.name.toLowerCase().includes(currentSearchTerm.toLowerCase()) ||
-    combo.sku.toLowerCase().includes(currentSearchTerm.toLowerCase())
+    combo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    combo.sku.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Si está en modo modal, solo mostrar el formulario
@@ -662,6 +658,27 @@ export default function ComboManagement({ modalMode = false, searchTerm = '' }: 
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        {/* Search Bar */}
+        <div className="flex items-center space-x-2 max-w-md">
+          <Input
+            type="text"
+            placeholder="Buscar combos por nombre o SKU..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={() => setSearchTerm('')} variant="outline">
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <Button onClick={handleCreateCombo} className="bg-orange-600 hover:bg-orange-700">
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo Combo
+        </Button>
+      </div>
 
       {/* Combos Grid */}
       {loading ? (
