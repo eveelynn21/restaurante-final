@@ -117,8 +117,13 @@ export default function WebPage({ params }: { params: Promise<{ businessId: stri
           return;
         }
         const res = await fetch(`/api/products/public?businessId=${businessId}&pageSize=1000`)
-        if (!res.ok) throw new Error('Error al obtener productos')
+        if (!res.ok) {
+          const errorData = await res.json()
+          throw new Error(errorData.error || 'Error al obtener productos')
+        }
         const data = await res.json()
+        
+        console.log('Respuesta de la API:', data)
         
         // Filtrar productos duplicados por id antes de guardar
         const uniqueProducts = Array.from(new Map((data.products || []).map((p: any) => [p.id, p])).values())

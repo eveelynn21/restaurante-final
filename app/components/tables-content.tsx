@@ -160,7 +160,7 @@ export default function TablesContent() {
             {/* Eliminar el input de búsqueda del header */}
             <Button variant="outline"
               className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-3"
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/pos")}
               style={{ backgroundColor: '#ede9fe', color: '#7c3aed', borderColor: '#a78bfa' }}
             >
               <ShoppingCart className="mr-1 h-3 w-3" />

@@ -31,22 +31,26 @@ function handleAuthError(error: any): never {
 }
 
 export async function getProducts(businessId: number, page: number = 1, pageSize: number = 20): Promise<ProductQueryResult> {
-  const limitValue = Number.isInteger(Number(pageSize)) && Number(pageSize) > 0 ? Number(pageSize) : 20;
-  const offsetValue = Number.isInteger(Number((page - 1) * limitValue)) && Number((page - 1) * limitValue) >= 0 ? Number((page - 1) * limitValue) : 0;
+  try {
+    console.log('🔍 getProducts - BusinessId:', businessId, 'Page:', page, 'PageSize:', pageSize)
+    
+    if (!businessId || businessId <= 0) {
+      throw new Error('businessId inválido')
+    }
+    
+    const limitValue = Number.isInteger(Number(pageSize)) && Number(pageSize) > 0 ? Number(pageSize) : 20;
+    const offsetValue = Number.isInteger(Number((page - 1) * limitValue)) && Number((page - 1) * limitValue) >= 0 ? Number((page - 1) * limitValue) : 0;
   
   const query = `
-    SELECT DISTINCT 
+    SELECT 
          p.id, 
          p.name, 
          p.sku, 
          p.category_id, 
-         c.name as category_name,
-         v.sell_price_inc_tax,
-         v.tax_percent,
-         CASE 
-           WHEN v.tax_percent > 0 THEN v.sell_price_inc_tax / (1 + v.tax_percent / 100)
-           ELSE v.sell_price_inc_tax
-         END as default_sell_price,
+         COALESCE(c.name, 'Sin categoría') as category_name,
+         COALESCE(v.sell_price_inc_tax, 0) as sell_price_inc_tax,
+         0 as tax_percent,
+         COALESCE(v.sell_price_inc_tax, 0) as default_sell_price,
          p.image, 
          p.product_description, 
          p.business_id, 
@@ -54,40 +58,90 @@ export async function getProducts(businessId: number, page: number = 1, pageSize
          p.order_area_id,
          p.combo
        FROM products p
-    LEFT JOIN variations v ON p.id = v.product_id
+       LEFT JOIN variations v ON p.id = v.product_id
        LEFT JOIN categories c ON p.category_id = c.id
        WHERE p.business_id = ?
        ORDER BY p.id DESC
-    LIMIT ${limitValue} OFFSET ${offsetValue}
+       LIMIT ${limitValue} OFFSET ${offsetValue}
   `;
+  
+  console.log('🔍 Query SQL:', query);
+  console.log('🔍 Parámetros:', [businessId, limitValue, offsetValue]);
+  
+  // Primero probar una consulta simple para verificar que hay productos
+  const simpleQuery = `SELECT COUNT(*) as total FROM products WHERE business_id = ?`;
+  const simpleResult = await executePosQuery(simpleQuery, [businessId]) as any[];
+  console.log('🔍 Consulta simple - Total productos:', simpleResult[0]?.total);
+  
+  console.log('🔍 Query SQL:', query);
+  console.log('🔍 Parámetros:', [businessId, limitValue, offsetValue]);
 
-  const [products, totalArr] = await Promise.all([
-    executePosQuery(query, [businessId]) as Promise<Product[]>,
-    executePosQuery(
-      `SELECT COUNT(DISTINCT p.id) as total
-       FROM products p
-       LEFT JOIN variations v ON p.id = v.product_id
-       WHERE p.business_id = ?`,
-      [businessId]
-    ) as Promise<[{ total: number }]>
-  ])
-  const total = Array.isArray(totalArr) && totalArr.length > 0 ? totalArr[0].total : 0;
-  console.log('products raw:', products);
-  console.log('total raw:', total);
+  console.log('🔍 Ejecutando consulta con businessId:', businessId)
+  
+  let products: any[] = []
+  let total = 0
+  
+  try {
+    console.log('🔍 Antes de ejecutar consultas...')
+    
+    // Probar conexión simple primero
+    const simpleQuery = `SELECT COUNT(*) as total FROM products WHERE business_id = ?`;
+    console.log('🔍 Ejecutando consulta simple:', simpleQuery, 'con businessId:', businessId);
+    const simpleResult = await executePosQuery(simpleQuery, [businessId]) as any[];
+    console.log('🔍 Resultado consulta simple:', simpleResult);
+    
+    const [productsResult, totalArr] = await Promise.all([
+      executePosQuery(query, [businessId]) as Promise<Product[]>,
+      executePosQuery(
+        `SELECT COUNT(p.id) as total
+         FROM products p
+         WHERE p.business_id = ?`,
+        [businessId]
+      ) as Promise<[{ total: number }]>
+    ])
+    
+    products = Array.isArray(productsResult) ? productsResult : []
+    total = Array.isArray(totalArr) && totalArr.length > 0 ? totalArr[0].total : 0;
+    
+    console.log('✅ Productos obtenidos de DB:', products?.length || 0);
+    console.log('✅ Total de productos:', total);
+    console.log('✅ Primer producto (si existe):', products?.[0]);
+    console.log('✅ Todos los productos:', JSON.stringify(products, null, 2));
+  } catch (dbError) {
+    console.error('❌ Error en consulta DB:', dbError)
+    products = []
+    total = 0
+  }
 
-      return { 
-      products: products.map(product => ({
-        ...product,
-        image: product.image && product.image.trim() !== '' ? product.image : '/placeholder.svg',
-        sell_price_inc_tax: Number(product.sell_price_inc_tax) || 0,
-        default_sell_price: Number((product as any).default_sell_price) || 0,
-        category_id: (product as any).category_id ?? null,
-        category_name: (product as any).category_name ?? 'Sin categoría',
-        order_area_id: product.order_area_id ?? null,
-        combo: (product as any).combo ? JSON.parse((product as any).combo) : null
-      })),
-      total: total || 0 
+  return { 
+    products: products.map(product => ({
+      ...product,
+      image: product.image && product.image.trim() !== '' ? product.image : '/placeholder.svg',
+      sell_price_inc_tax: Number(product.sell_price_inc_tax) || 0,
+      default_sell_price: Number((product as any).default_sell_price) || 0,
+      category_id: (product as any).category_id ?? null,
+      category_name: (product as any).category_name ?? 'Sin categoría',
+      order_area_id: product.order_area_id ?? null,
+      combo: (product as any).combo && typeof (product as any).combo === 'string' && (product as any).combo.trim() !== '' ? 
+        (() => {
+          try {
+            return JSON.parse((product as any).combo)
+          } catch (e) {
+            console.log('Error parsing combo for product:', product.id, 'combo value:', (product as any).combo)
+            return null
+          }
+        })() : null
+    })),
+    total: total || 0 
+  }
+  } catch (error) {
+    console.error('❌ Error en getProducts:', error)
+    console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    return { 
+      products: [], 
+      total: 0 
     }
+  }
 }
 
 export async function getProductsByBusinessId(businessId: number, limit = 20, offset = 0): Promise<Product[]> {
@@ -98,11 +152,8 @@ export async function getProductsByBusinessId(businessId: number, limit = 20, of
         p.name, 
         p.sku, 
         v.sell_price_inc_tax,
-        v.tax_percent,
-        CASE 
-          WHEN v.tax_percent > 0 THEN v.sell_price_inc_tax / (1 + v.tax_percent / 100)
-          ELSE v.sell_price_inc_tax
-        END as default_sell_price,
+        0 as tax_percent,
+        COALESCE(v.sell_price_inc_tax, 0) as default_sell_price,
         p.image, 
         p.product_description, 
         p.business_id, 

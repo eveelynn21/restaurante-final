@@ -47,6 +47,7 @@ import AreaOrdersContent from "../components/area-orders-content"
 import ComandasContent from "../components/comandas-content"
 import Link from "next/link"
 import { Switch } from "../components/ui/switch"
+import DailySalesChart from "../components/daily-sales-chart"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -511,10 +512,10 @@ export default function DashboardPage() {
           {currentSection === "resumen" && (
             <div className="flex-1 flex flex-col min-h-0">
               {/* Header del Contenido */}
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-800">Resumen</h1>
-                  <p className="text-gray-600 mt-2 text-lg">Vista general de tu restaurante</p>
+                  <h1 className="text-2xl font-bold text-gray-800">Resumen</h1>
+                  <p className="text-gray-600 mt-1 text-sm">Vista general de tu restaurante</p>
                 </div>
                 <div className="flex gap-4">
                   <Button
@@ -555,25 +556,9 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {/* Actividad Reciente */}
+              {/* Gráfico de Ventas del Día */}
               <div className="flex-1 min-h-0">
-                <Card className="border-0 shadow-lg h-full flex flex-col bg-white/80 backdrop-blur-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-3 text-xl">
-                      <BarChart3 className="h-6 w-6 text-purple-600" />
-                      Actividad Reciente
-                    </CardTitle>
-                    <CardDescription className="text-gray-600">Resumen de la actividad del restaurante</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex items-center justify-center min-h-0">
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <BarChart3 className="h-8 w-8 text-white" />
-                      </div>
-                      <p className="text-gray-500 text-lg">Los datos de actividad aparecerán aquí</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <DailySalesChart />
               </div>
             </div>
           )}
