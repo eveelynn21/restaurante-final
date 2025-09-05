@@ -8,3 +8,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: NEXT_TELEMETRY_DISABLED
+        value: 1
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=4096
