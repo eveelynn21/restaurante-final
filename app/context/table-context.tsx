@@ -93,6 +93,7 @@ interface TableContextType {
   calculateBillForPerson: (tableId: number, personId: string) => { subtotal: number; tax: number; total: number }
   finalizeSplitBills: (tableId: number) => Bill[]
   createOnlineOrder: (customerInfo: any, items: any[], total: number) => void
+  forceReloadComandasState: () => Promise<void>
 }
 
 const TableContext = createContext<TableContextType | undefined>(undefined)
@@ -268,6 +269,89 @@ export function TableProvider({ children }: { children: ReactNode }) {
         }
       }
       fetchTables()
+    } else {
+      // Si se cargaron desde localStorage, sincronizar el estado "Enviado" con las comandas reales
+      const syncComandasState = async () => {
+        try {
+          console.log('🔄 Sincronizando estado de comandas para mesas cargadas desde localStorage')
+          
+          // Obtener todas las mesas con pedidos activos del localStorage actual
+          const storageKey = `restaurant-tables-db-${businessId}`
+          const savedTables = localStorage.getItem(storageKey)
+          if (!savedTables) return
+          
+          const parsedTables = JSON.parse(savedTables)
+          const mesasConPedidos = parsedTables.filter((table: any) => table.currentOrder)
+          
+          for (const mesa of mesasConPedidos) {
+            if (mesa.currentOrder) {
+              // Obtener el estado real de las comandas para esta mesa
+              const comandasResponse = await fetch(`/api/comandas?mesa_id=${mesa.id}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              })
+              
+              if (comandasResponse.ok) {
+                const comandasData = await comandasResponse.json()
+                
+                // Crear un mapa de productos que están en comandas
+                const productosEnComandas = new Set()
+                if (comandasData.data && Array.isArray(comandasData.data)) {
+                  comandasData.data.forEach((comanda: any) => {
+                    if (comanda.items && Array.isArray(comanda.items)) {
+                      comanda.items.forEach((item: any) => {
+                        productosEnComandas.add(item.id)
+                      })
+                    }
+                  })
+                }
+                
+                // Actualizar el estado de los productos basado en las comandas reales
+                const updatedItems = mesa.currentOrder.items.map((item: any) => {
+                  const estaEnComandas = productosEnComandas.has(item.id)
+                  
+                  if (estaEnComandas) {
+                    // Si está en comandas, mantener estado "Enviado"
+                    return {
+                      ...item,
+                      status: 'Enviado'
+                    }
+                  } else {
+                    // Si no está en comandas, usar estado por defecto
+                    return item
+                  }
+                })
+                
+                // Actualizar la mesa con el estado sincronizado
+                const updatedTable = {
+                  ...mesa,
+                  currentOrder: {
+                    ...mesa.currentOrder,
+                    items: updatedItems
+                  }
+                }
+                
+                // Actualizar el estado local
+                setTables(prevTables => 
+                  prevTables.map(t => t.id === mesa.id ? updatedTable : t)
+                )
+                
+                // También actualizar el localStorage
+                const updatedTables = parsedTables.map((t: any) => 
+                  t.id === mesa.id ? updatedTable : t
+                )
+                localStorage.setItem(storageKey, JSON.stringify(updatedTables))
+                
+                console.log(`✅ Estado sincronizado para mesa ${mesa.id}:`, updatedItems.length, 'productos')
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error sincronizando estado de comandas:', error)
+        }
+      }
+      
+      // Ejecutar sincronización después de que las mesas se hayan cargado
+      setTimeout(syncComandasState, 100)
     }
     setIsLoading(false)
   }, [])
@@ -281,11 +365,11 @@ export function TableProvider({ children }: { children: ReactNode }) {
         // Guardar con fechas serializadas correctamente
         const tablesToSave = tables.map(table => ({
           ...table,
-          createdAt: table.createdAt?.toISOString(),
-          updatedAt: table.updatedAt?.toISOString(),
+          createdAt: table.createdAt instanceof Date ? table.createdAt.toISOString() : table.createdAt,
+          updatedAt: table.updatedAt instanceof Date ? table.updatedAt.toISOString() : table.updatedAt,
           currentOrder: table.currentOrder ? {
             ...table.currentOrder,
-            createdAt: table.currentOrder.createdAt?.toISOString()
+            createdAt: table.currentOrder.createdAt instanceof Date ? table.currentOrder.createdAt.toISOString() : table.currentOrder.createdAt
           } : undefined
         }))
         localStorage.setItem(storageKey, JSON.stringify(tablesToSave))
@@ -294,6 +378,270 @@ export function TableProvider({ children }: { children: ReactNode }) {
         console.error("❌ Failed to save tables to localStorage:", error)
       }
     }
+  }, [tables])
+
+  // Cargar estado real de comandas y pedidos temporales cada vez que se refresque la página
+  useEffect(() => {
+    const businessId = getBusinessIdFromToken()
+    if (!businessId || tables.length === 0) return
+
+    const loadRealComandasState = async () => {
+      try {
+        console.log('🔄 Cargando estado real de comandas y pedidos temporales desde la BD')
+        
+        // Obtener todas las mesas con pedidos activos
+        const mesasConPedidos = tables.filter(table => table.currentOrder)
+        
+        for (const mesa of mesasConPedidos) {
+          if (mesa.currentOrder) {
+            // Obtener el estado real de las comandas para esta mesa
+            const comandasResponse = await fetch(`/api/comandas?mesa_id=${mesa.id}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            })
+            
+            if (comandasResponse.ok) {
+              const comandasData = await comandasResponse.json()
+              
+              // Crear un mapa de productos que están en comandas
+              const productosEnComandas = new Set()
+              if (comandasData.data && Array.isArray(comandasData.data)) {
+                comandasData.data.forEach((comanda: any) => {
+                  if (comanda.items && Array.isArray(comanda.items)) {
+                    comanda.items.forEach((item: any) => {
+                      productosEnComandas.add(item.id)
+                    })
+                  }
+                })
+              }
+              
+              // Actualizar el estado de los productos basado en las comandas reales
+              const updatedItems = mesa.currentOrder.items.map((item: any) => {
+                const estaEnComandas = productosEnComandas.has(item.id)
+                
+                if (estaEnComandas) {
+                  // Si está en comandas, mantener estado "Enviado"
+                  return {
+                    ...item,
+                    status: 'Enviado'
+                  }
+                } else {
+                  // Si no está en comandas, usar estado por defecto
+                  return item
+                }
+              })
+              
+              // Actualizar la mesa con el estado sincronizado
+              const updatedTable = {
+                ...mesa,
+                currentOrder: {
+                  ...mesa.currentOrder,
+                  items: updatedItems
+                }
+              }
+              
+              // Actualizar el estado local
+              setTables(prevTables => 
+                prevTables.map(t => t.id === mesa.id ? updatedTable : t)
+              )
+              
+              // También actualizar el localStorage
+              const storageKey = `restaurant-tables-db-${businessId}`
+              const savedTables = localStorage.getItem(storageKey)
+              if (savedTables) {
+                const parsedTables = JSON.parse(savedTables)
+                const updatedTables = parsedTables.map((t: any) => 
+                  t.id === mesa.id ? updatedTable : t
+                )
+                localStorage.setItem(storageKey, JSON.stringify(updatedTables))
+              }
+              
+              console.log(`✅ Estado real cargado para mesa ${mesa.id}:`, updatedItems.length, 'productos')
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error cargando estado real de comandas:', error)
+      }
+    }
+    
+    // Ejecutar inmediatamente y también después de un delay
+    loadRealComandasState()
+    const timeoutId = setTimeout(loadRealComandasState, 1000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [tables])
+
+  // Polling para pedidos temporales desde QR
+  useEffect(() => {
+    const businessId = getBusinessIdFromToken()
+    if (!businessId || tables.length === 0) return
+
+    const checkTempOrders = async () => {
+      try {
+        console.log('🔄 Verificando pedidos temporales desde QR para', tables.length, 'mesas')
+        
+        // Primero, obtener todas las mesas con pedidos temporales
+        const allTempOrdersResponse = await fetch(`/api/table-orders-temp?business_id=${businessId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+        
+        if (allTempOrdersResponse.ok) {
+          const allTempOrdersData = await allTempOrdersResponse.json()
+          console.log('📋 Todos los pedidos temporales:', allTempOrdersData)
+          
+          if (allTempOrdersData.success && allTempOrdersData.data && allTempOrdersData.data.length > 0) {
+            // Agrupar por mesa_id
+            const ordersByMesa = allTempOrdersData.data.reduce((acc: any, item: any) => {
+              if (!acc[item.mesa_id]) {
+                acc[item.mesa_id] = []
+              }
+              acc[item.mesa_id].push(item)
+              return acc
+            }, {})
+            
+            console.log('📋 Pedidos agrupados por mesa:', ordersByMesa)
+            
+            // Procesar cada mesa con pedidos temporales
+            for (const mesaId of Object.keys(ordersByMesa)) {
+              const mesaIdNum = parseInt(mesaId)
+              const tempItems = ordersByMesa[mesaId]
+              
+              console.log(`🔄 Mesa ${mesaId} tiene ${tempItems.length} pedidos temporales`)
+              
+              // Buscar si la mesa ya existe en el estado
+              let mesa = tables.find(t => t.id === mesaIdNum)
+              
+              if (!mesa) {
+                // Si la mesa no existe, crearla
+                console.log(`🆕 Creando nueva mesa ${mesaId} para pedidos temporales`)
+                mesa = {
+                  id: mesaIdNum,
+                  number: mesaIdNum,
+                  name: `Mesa ${mesaId}`,
+                  x: 50 + (mesaIdNum * 120) % 600,
+                  y: 50 + Math.floor(mesaIdNum / 5) * 120,
+                  width: 100,
+                  height: 100,
+                  seats: 4,
+                  status: "available" as const,
+                  shape: "rectangle" as const,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  isActive: true
+                }
+              }
+              
+              // Convertir pedidos temporales a formato de mesa
+              const convertedItems = tempItems.map((item: any) => ({
+                id: item.product_id,
+                name: item.product_name,
+                quantity: item.quantity,
+                price: item.price,
+                sell_price_inc_tax: item.price,
+                status: 'Pendiente',
+                image: item.image,
+                _orderItemId: `temp-${item.product_id}-${item.id}`
+              }))
+              
+              // Si la mesa ya tiene pedidos, agregar solo los temporales que no existan
+              let finalItems = convertedItems
+              let finalTotal = convertedItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+              let finalWaiter = 'Cliente QR'
+              let finalCustomerInfo = { name: 'Cliente Mesa ' + mesaId }
+              
+              if (mesa.currentOrder) {
+                // Crear un Set de IDs de productos que ya están en la mesa
+                const existingProductIds = new Set(mesa.currentOrder.items.map((item: any) => item.id))
+                
+                // Filtrar solo los productos temporales que NO están ya en la mesa
+                const newTempItems = convertedItems.filter((item: any) => !existingProductIds.has(item.id))
+                
+                console.log(`🔍 Mesa ${mesaId}: ${convertedItems.length} productos temporales, ${newTempItems.length} nuevos`)
+                
+                // Agregar solo los productos nuevos
+                finalItems = [...mesa.currentOrder.items, ...newTempItems]
+                finalTotal = finalItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+                finalWaiter = mesa.currentOrder.waiter || 'Cliente QR'
+                finalCustomerInfo = mesa.currentOrder.customerInfo || { name: 'Cliente Mesa ' + mesaId }
+              }
+              
+              // Solo actualizar si hay productos nuevos o si es una mesa nueva
+              const hasNewItems = mesa.currentOrder ? 
+                convertedItems.some((item: any) => !mesa.currentOrder!.items.some((existing: any) => existing.id === item.id)) :
+                true
+              
+              if (hasNewItems) {
+                // Actualizar la mesa con los pedidos temporales
+                const updatedTable = {
+                  ...mesa,
+                  status: 'occupied' as const,
+                  currentOrder: {
+                    id: mesa.currentOrder?.id || `order-temp-${mesaId}-${Date.now()}`,
+                    items: finalItems,
+                    total: finalTotal,
+                    status: 'active' as const,
+                    orderType: 'dine-in' as const,
+                    waiter: finalWaiter,
+                    customerInfo: finalCustomerInfo,
+                    bills: mesa.currentOrder?.bills || [],
+                    splitMode: mesa.currentOrder?.splitMode || false,
+                    printedAreas: mesa.currentOrder?.printedAreas || [],
+                    createdAt: mesa.currentOrder?.createdAt || new Date(),
+                    updatedAt: new Date()
+                  },
+                  updatedAt: new Date()
+                }
+                
+                // Actualizar el estado local
+                setTables(prevTables => {
+                  const existingTableIndex = prevTables.findIndex(t => t.id === mesaIdNum)
+                  if (existingTableIndex >= 0) {
+                    // Actualizar mesa existente
+                    return prevTables.map(t => t.id === mesaIdNum ? updatedTable : t)
+                  } else {
+                    // Agregar nueva mesa
+                    return [...prevTables, updatedTable]
+                  }
+                })
+                
+                // También actualizar el localStorage
+                const storageKey = `restaurant-tables-db-${businessId}`
+                const savedTables = localStorage.getItem(storageKey)
+                if (savedTables) {
+                  const parsedTables = JSON.parse(savedTables)
+                  const existingTableIndex = parsedTables.findIndex((t: any) => t.id === mesaIdNum)
+                  if (existingTableIndex >= 0) {
+                    // Actualizar mesa existente
+                    const updatedTables = parsedTables.map((t: any) => 
+                      t.id === mesaIdNum ? updatedTable : t
+                    )
+                    localStorage.setItem(storageKey, JSON.stringify(updatedTables))
+                  } else {
+                    // Agregar nueva mesa
+                    const updatedTables = [...parsedTables, updatedTable]
+                    localStorage.setItem(storageKey, JSON.stringify(updatedTables))
+                  }
+                } else {
+                  // Si no hay localStorage, crear uno nuevo
+                  localStorage.setItem(storageKey, JSON.stringify([updatedTable]))
+                }
+                
+                console.log(`✅ Mesa ${mesaId} actualizada con pedidos temporales`)
+              } else {
+                console.log(`⏭️ Mesa ${mesaId} no necesita actualización (no hay productos nuevos)`)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error verificando pedidos temporales:', error)
+      }
+    }
+    
+    // Ejecutar polling cada 5 segundos
+    const intervalId = setInterval(checkTempOrders, 5000)
+    
+    return () => clearInterval(intervalId)
   }, [tables])
 
   const updateTablePosition = (id: number, x: number, y: number) => {
@@ -310,6 +658,89 @@ export function TableProvider({ children }: { children: ReactNode }) {
         table.id === id ? { ...table, status, updatedAt: new Date() } : table
       )
     )
+  }
+
+  // Forzar recarga del estado real de comandas
+  const forceReloadComandasState = async () => {
+    const businessId = getBusinessIdFromToken()
+    if (!businessId) return
+
+    try {
+      console.log('🔄 Forzando recarga del estado real de comandas')
+      
+      // Obtener todas las mesas con pedidos activos
+      const mesasConPedidos = tables.filter(table => table.currentOrder)
+      
+      for (const mesa of mesasConPedidos) {
+        if (mesa.currentOrder) {
+          // Obtener el estado real de las comandas para esta mesa
+          const comandasResponse = await fetch(`/api/comandas?mesa_id=${mesa.id}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          })
+          
+          if (comandasResponse.ok) {
+            const comandasData = await comandasResponse.json()
+            
+            // Crear un mapa de productos que están en comandas
+            const productosEnComandas = new Set()
+            if (comandasData.data && Array.isArray(comandasData.data)) {
+              comandasData.data.forEach((comanda: any) => {
+                if (comanda.items && Array.isArray(comanda.items)) {
+                  comanda.items.forEach((item: any) => {
+                    productosEnComandas.add(item.id)
+                  })
+                }
+              })
+            }
+            
+            // Actualizar el estado de los productos basado en las comandas reales
+            const updatedItems = mesa.currentOrder.items.map((item: any) => {
+              const estaEnComandas = productosEnComandas.has(item.id)
+              
+              if (estaEnComandas) {
+                // Si está en comandas, mantener estado "Enviado"
+                return {
+                  ...item,
+                  status: 'Enviado'
+                }
+              } else {
+                // Si no está en comandas, usar estado por defecto
+                return item
+              }
+            })
+            
+            // Actualizar la mesa con el estado sincronizado
+            const updatedTable = {
+              ...mesa,
+              currentOrder: {
+                ...mesa.currentOrder,
+                items: updatedItems
+              }
+            }
+            
+            // Actualizar el estado local
+            setTables(prevTables => 
+              prevTables.map(t => t.id === mesa.id ? updatedTable : t)
+            )
+            
+            // También actualizar el localStorage
+            const storageKey = `restaurant-tables-db-${businessId}`
+            const savedTables = localStorage.getItem(storageKey)
+            if (savedTables) {
+              const parsedTables = JSON.parse(savedTables)
+              const updatedTables = parsedTables.map((t: any) => 
+                t.id === mesa.id ? updatedTable : t
+              )
+              localStorage.setItem(storageKey, JSON.stringify(updatedTables))
+            }
+            
+            console.log(`✅ Estado real forzado para mesa ${mesa.id}:`, updatedItems.length, 'productos')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error forzando recarga de comandas:', error)
+    }
   }
 
   // Limpiar localStorage y recargar desde la base de datos
@@ -921,6 +1352,7 @@ export function TableProvider({ children }: { children: ReactNode }) {
         calculateBillForPerson,
         finalizeSplitBills,
         createOnlineOrder,
+        forceReloadComandasState,
       }}
     >
       {children}

@@ -302,6 +302,35 @@ export default function SplitCheckoutPage() {
     // Clear the table order completely
     clearTableOrder(splitBillsData.tableId)
 
+    // Limpiar comandas de la mesa después de facturar
+    console.log('🧹 Verificando si se deben limpiar comandas (split)...')
+    console.log('🧹 splitBillsData.tableId:', splitBillsData.tableId)
+    
+    try {
+      const token = localStorage.getItem('token')
+      if (token) {
+        console.log('🧹 Limpiando comandas para mesa:', splitBillsData.tableId)
+        const response = await fetch(`/api/comandas?mesa_id=${splitBillsData.tableId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          console.log('✅ Comandas de la mesa eliminadas después de facturar (split):', result)
+        } else {
+          const errorData = await response.json()
+          console.error('❌ Error en respuesta de API (split):', response.status, errorData)
+        }
+      } else {
+        console.log('🧹 No hay token para limpiar comandas')
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando comandas:', error)
+    }
+
     // Redirect to success page with forced reload
     window.location.href = "/split-success"
   }

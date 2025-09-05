@@ -379,6 +379,36 @@ export default function TableCheckoutPage() {
       // Complete the order
       completeTableOrder(tempOrder.tableId)
 
+      // Limpiar comandas de la mesa después de facturar
+      console.log('🧹 Verificando si se deben limpiar comandas...')
+      console.log('🧹 tempOrder.tableId:', tempOrder.tableId)
+      console.log('🧹 fromCart:', fromCart)
+      console.log('🧹 Condición:', tempOrder.tableId && !fromCart)
+      
+      if (tempOrder.tableId && !fromCart) {
+        try {
+          console.log('🧹 Limpiando comandas para mesa:', tempOrder.tableId, 'tipo:', typeof tempOrder.tableId)
+          const response = await fetch(`/api/comandas?mesa_id=${tempOrder.tableId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (response.ok) {
+            const result = await response.json()
+            console.log('✅ Comandas de la mesa eliminadas después de facturar:', result)
+          } else {
+            const errorData = await response.json()
+            console.error('❌ Error en respuesta de API:', response.status, errorData)
+          }
+        } catch (error) {
+          console.error('❌ Error eliminando comandas:', error)
+        }
+      } else {
+        console.log('🧹 No se limpiaron comandas - tableId:', tempOrder.tableId, 'fromCart:', fromCart)
+      }
+
       // Store receipt data with real invoice number
       localStorage.setItem(
         "table-receipt",

@@ -1,18 +1,39 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { jwtDecode } from "jwt-decode"
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { jwtDecode } from 'jwt-decode'
+
+// Helper function to get business_id from token
+const getBusinessIdFromToken = (): number | null => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return null
+    const decoded: any = jwtDecode(token)
+    return decoded.business_id || null
+  } catch {
+    return null
+  }
+}
 
 export interface Comanda {
   id: string
   tableNumber: string
   tableId: string
   waiter: string
-  items: any[]
+  items: ComandaItem[]
   createdAt: Date
-  status: "pending" | "preparing" | "ready" | "completed"
+  status: 'pending' | 'preparing' | 'ready' | 'completed'
   area: string
-  estimatedTime: number
+  estimatedTime?: number
+}
+
+export interface ComandaItem {
+  id: number
+  name: string
+  quantity: number
+  price: number
+  status: 'pending' | 'preparing' | 'ready' | 'completed'
+  image?: string
 }
 
 export interface ProduccionItem {
@@ -21,7 +42,7 @@ export interface ProduccionItem {
   tableNumber: string
   tableId: string
   waiter: string
-  items: any[]
+  items: ComandaItem[]
   completedAt: Date
   area: string
   hasRecipe: boolean
@@ -40,126 +61,175 @@ interface ComandasContextType {
   produccionItems: ProduccionItem[]
   addComanda: (comanda: Comanda) => void
   updateComandaStatus: (id: string, status: Comanda['status']) => void
+  updateProductStatus: (comandaId: string, productId: number, status: string) => Promise<void>
   getComandasByArea: (area: string) => Comanda[]
   markItemsAsSent: (tableId: string, area: string, itemIds: string[]) => void
   isItemSent: (tableId: string, area: string, itemId: string) => boolean
   moveToProduccion: (comanda: Comanda) => void
   getProduccionItems: () => ProduccionItem[]
   clearComandasByArea: (areaName: string) => void
+  loadComandasByArea: (area: string) => Promise<void>
 }
 
 const ComandasContext = createContext<ComandasContextType | undefined>(undefined)
-
-// Helper function to get business_id from token
-const getBusinessIdFromToken = (): number | null => {
-  try {
-    const token = localStorage.getItem('token')
-    if (!token) return null
-    const decoded: any = jwtDecode(token)
-    return decoded.business_id || null
-  } catch {
-    return null
-  }
-}
 
 export function ComandasProvider({ children }: { children: ReactNode }) {
   const [comandas, setComandas] = useState<Comanda[]>([])
   const [sentItems, setSentItems] = useState<SentItem[]>([])
   const [produccionItems, setProduccionItems] = useState<ProduccionItem[]>([])
 
-  // Event listeners para recibir eventos desde split-checkout
+  // Cargar todas las comandas al inicializar el contexto
   useEffect(() => {
-    const handleAddComanda = (event: CustomEvent) => {
-      const comanda = event.detail
-      console.log('Agregando comanda desde split-checkout:', comanda)
-      addComanda(comanda)
+    const loadAllComandas = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        const response = await fetch('/api/comandas', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setComandas(data.data)
+            console.log('✅ Comandas cargadas desde BD al inicializar:', data.data)
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando comandas al inicializar:', error)
+      }
     }
 
-    const handleMoveToProduccion = (event: CustomEvent) => {
-      const produccionItem = event.detail
-      console.log('Agregando a producción desde split-checkout:', produccionItem)
-      setProduccionItems(prev => [...prev, produccionItem])
-    }
-
-    window.addEventListener('addComanda', handleAddComanda as EventListener)
-    window.addEventListener('moveToProduccion', handleMoveToProduccion as EventListener)
-
-    return () => {
-      window.removeEventListener('addComanda', handleAddComanda as EventListener)
-      window.removeEventListener('moveToProduccion', handleMoveToProduccion as EventListener)
-    }
+    loadAllComandas()
   }, [])
 
-  // Cargar comandas y produccionItems desde localStorage al iniciar
-  useEffect(() => {
-    const businessId = getBusinessIdFromToken()
-    if (!businessId) {
-      console.log('❌ No business_id found in token for comandas')
-      return
-    }
+  // Cargar comandas desde la API
+  const loadComandasByArea = async (area: string) => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
 
-    // Detectar cambios de empresa y limpiar datos del localStorage anterior
-    const lastBusinessIdComandas = localStorage.getItem('lastBusinessIdComandas')
-    if (lastBusinessIdComandas && lastBusinessIdComandas !== businessId.toString()) {
-      console.log(`🔄 Business changed from ${lastBusinessIdComandas} to ${businessId}, clearing comandas localStorage`)
-      // Limpiar datos de comandas de la empresa anterior
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('restaurante-comandas-') || 
-            key.startsWith('restaurante-produccion-items-')) {
-          localStorage.removeItem(key)
+      const response = await fetch(`/api/comandas?area=${encodeURIComponent(area)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
       })
-      // También limpiar los estados actuales
-      setComandas([])
-      setProduccionItems([])
-    }
-    localStorage.setItem('lastBusinessIdComandas', businessId.toString())
 
-    const comandasKey = `restaurante-comandas-${businessId}`
-    const produccionKey = `restaurante-produccion-items-${businessId}`
-    
-    const savedComandas = localStorage.getItem(comandasKey)
-    const savedProduccion = localStorage.getItem(produccionKey)
-    
-    if (savedComandas) {
-      try { 
-        setComandas(JSON.parse(savedComandas))
-        console.log(`✅ Comandas loaded for business ${businessId}`)
-      } catch {}
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setComandas(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando comandas:', error)
     }
-    if (savedProduccion) {
-      try { 
-        setProduccionItems(JSON.parse(savedProduccion))
-        console.log(`✅ Producción items loaded for business ${businessId}`)
-      } catch {}
-    }
-  }, [])
+  }
 
-  // Guardar comandas y produccionItems en localStorage cuando cambien
-  useEffect(() => {
-    const businessId = getBusinessIdFromToken()
-    if (businessId) {
-      const comandasKey = `restaurante-comandas-${businessId}`
-      localStorage.setItem(comandasKey, JSON.stringify(comandas))
-    }
-  }, [comandas])
-  
-  useEffect(() => {
-    const businessId = getBusinessIdFromToken()
-    if (businessId) {
-      const produccionKey = `restaurante-produccion-items-${businessId}`
-      localStorage.setItem(produccionKey, JSON.stringify(produccionItems))
-    }
-  }, [produccionItems])
-
-  const addComanda = (comanda: Comanda) => {
+  const addComanda = async (comanda: Comanda) => {
+    // Agregar al estado local
     setComandas(prev => [...prev, comanda])
+    
+    // También guardar en la base de datos
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        console.warn('No hay token para guardar comanda en BD')
+        return
+      }
+
+      const response = await fetch('/api/comandas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          mesa_id: parseInt(comanda.tableId),
+          items: JSON.stringify(comanda.items),
+          total: comanda.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          estado: 'pendiente',
+          area: comanda.area
+        })
+      })
+
+      if (response.ok) {
+        console.log('✅ Comanda guardada en base de datos')
+        
+        // Eliminar pedidos temporales de la mesa después de enviar comanda
+        try {
+          const businessId = getBusinessIdFromToken()
+          if (businessId) {
+            const deleteResponse = await fetch(`/api/table-orders-temp?mesa_id=${parseInt(comanda.tableId)}&business_id=${businessId}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            
+            if (deleteResponse.ok) {
+              console.log('✅ Pedidos temporales eliminados después de enviar comanda')
+            } else {
+              console.error('❌ Error eliminando pedidos temporales')
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error eliminando pedidos temporales:', error)
+        }
+      } else {
+        console.error('❌ Error guardando comanda en BD:', response.statusText)
+      }
+    } catch (error) {
+      console.error('❌ Error guardando comanda en BD:', error)
+    }
   }
 
   const updateComandaStatus = (id: string, status: Comanda['status']) => {
     setComandas(prev => prev.map(comanda => 
       comanda.id === id ? { ...comanda, status } : comanda
     ))
+  }
+
+  const updateProductStatus = async (comandaId: string, productId: number, status: string) => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+
+      const response = await fetch(`/api/comandas/${comandaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          item_status: status
+        })
+      })
+
+      if (response.ok) {
+        // Actualizar estado local
+        setComandas(prev => prev.map(comanda => {
+          if (comanda.id === comandaId) {
+            return {
+              ...comanda,
+              items: comanda.items.map(item => 
+                item.id === productId ? { ...item, status: status as any } : item
+              )
+            }
+          }
+          return comanda
+        }))
+        console.log('✅ Estado del producto actualizado en BD')
+      } else {
+        console.error('❌ Error actualizando estado del producto:', response.statusText)
+      }
+    } catch (error) {
+      console.error('❌ Error actualizando estado del producto:', error)
+    }
   }
 
   const getComandasByArea = (area: string) => {
@@ -256,12 +326,14 @@ export function ComandasProvider({ children }: { children: ReactNode }) {
       produccionItems,
       addComanda,
       updateComandaStatus,
+      updateProductStatus,
       getComandasByArea,
       markItemsAsSent,
       isItemSent,
       moveToProduccion,
       getProduccionItems,
-      clearComandasByArea
+      clearComandasByArea,
+      loadComandasByArea
     }}>
       {children}
     </ComandasContext.Provider>

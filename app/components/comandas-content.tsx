@@ -1,26 +1,24 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, AlertCircle, CheckCircle, Loader2, Check, User, MapPin } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { useComandas } from "../context/comandas-context"
-import { useRouter } from "next/navigation"
-import { jwtDecode } from "jwt-decode"
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Clock, MapPin, User, Check, Loader2 } from 'lucide-react'
+import { useComandas } from '../context/comandas-context'
+import { useRouter } from 'next/navigation'
 
 interface OrderArea {
   id: number
   name: string
 }
 
-// Helper function to get business_id from token
 const getBusinessIdFromToken = (): number | null => {
   try {
     const token = localStorage.getItem('token')
     if (!token) return null
-    const decoded: any = jwtDecode(token)
-    return decoded.business_id || null
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.business_id || null
   } catch {
     return null
   }
@@ -30,7 +28,7 @@ export default function ComandasContent() {
   const [areas, setAreas] = useState<OrderArea[]>([])
   const [selectedArea, setSelectedArea] = useState<OrderArea | null>(null)
   const [loading, setLoading] = useState(true)
-  const { getComandasByArea, updateComandaStatus, moveToProduccion, clearComandasByArea } = useComandas()
+  const { getComandasByArea, updateProductStatus, moveToProduccion, clearComandasByArea, loadComandasByArea } = useComandas()
   const router = useRouter()
   const [refresh, setRefresh] = useState(0)
 
@@ -77,126 +75,113 @@ export default function ComandasContent() {
     loadAreas()
   }, [])
 
+  // Cargar comandas cuando cambie el área seleccionada
+  useEffect(() => {
+    if (selectedArea) {
+      loadComandasByArea(selectedArea.name)
+    }
+  }, [selectedArea, loadComandasByArea])
+
   // Polling para refrescar la página completamente cada 10 segundos
   useEffect(() => {
     const interval = setInterval(() => {
-      window.location.reload()
+      setRefresh(prev => prev + 1)
     }, 10000)
+
     return () => clearInterval(interval)
   }, [])
 
+  // Refrescar comandas cuando cambie el refresh
+  useEffect(() => {
+    if (selectedArea) {
+      loadComandasByArea(selectedArea.name)
+    }
+  }, [refresh, selectedArea, loadComandasByArea])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando comandas...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col h-full min-h-[80vh] space-y-6">
-      {/* Header mejorado */}
-      <div className="bg-gradient-to-r from-purple-50 to-gray-50 border-b border-purple-200 shadow-sm">
-        <div className="flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b px-6 py-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-purple-800">
-              Sistema de Comandas
-            </h1>
-            <p className="text-purple-600 mt-1 text-sm font-medium">
-              Gestiona las comandas por área de preparación
-            </p>
+            <h1 className="text-3xl font-bold text-purple-600">Sistema de Comandas</h1>
+            <p className="text-gray-600 mt-1">Gestiona las comandas por área de preparación</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button 
-              onClick={() => router.push('/dashboard')} 
-              variant="outline" 
-              size="default" 
-              className="bg-white/90 backdrop-blur-sm text-purple-700 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-sm transition-all duration-200"
-            >
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => router.push('/dashboard')}>
               Dashboard
             </Button>
-            <Button 
-              onClick={() => router.push('/tables')} 
-              variant="outline" 
-              size="default" 
-              className="bg-white/90 backdrop-blur-sm text-purple-700 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-sm transition-all duration-200"
-            >
+            <Button variant="outline" onClick={() => router.push('/tables')}>
               Mesas
             </Button>
-            <Button 
-              onClick={() => router.push('/pos')} 
-              variant="outline" 
-              size="default" 
-              className="bg-white/90 backdrop-blur-sm text-purple-700 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-sm transition-all duration-200"
-            >
+            <Button variant="outline" onClick={() => router.push('/pos')}>
               POS
             </Button>
-            <Button 
-              onClick={() => router.push('/produccion')} 
-              variant="outline" 
-              size="default" 
-              className="bg-white/90 backdrop-blur-sm text-purple-700 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-sm transition-all duration-200"
-            >
+            <Button variant="outline" onClick={() => router.push('/produccion')}>
               Producción
             </Button>
-            <button
-              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md text-sm font-semibold transition-all duration-200 transform hover:scale-105"
-              onClick={() => selectedArea && clearComandasByArea(selectedArea.name)}
-              disabled={!selectedArea || getComandasByArea(selectedArea.name).length === 0}
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                if (selectedArea) {
+                  clearComandasByArea(selectedArea.name)
+                }
+              }}
             >
               Limpiar comandas
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Pestañas de áreas */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando áreas...</p>
+      {/* Contenido principal */}
+      <div className="flex gap-6 p-6">
+        {/* Sidebar de áreas */}
+        <div className="w-64 space-y-2">
+          {areas.map((area) => (
+            <Button
+              key={area.id}
+              variant={selectedArea?.id === area.id ? "default" : "outline"}
+              className="w-full justify-start"
+              onClick={() => setSelectedArea(area)}
+            >
+              {area.name}
+            </Button>
+          ))}
         </div>
-      ) : areas.length === 0 ? (
-        <div className="text-center py-12">
-          <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-          <p className="text-gray-600 mb-2">No hay áreas configuradas</p>
-          <p className="text-sm text-gray-500">Configura las áreas en la sección de configuración</p>
-        </div>
-      ) : (
-        <>
-          {/* Tabs de áreas mejorados */}
-          <div className="px-6">
-            <div className="flex space-x-1 bg-purple-50 p-1 rounded-xl">
-              {areas.map((area) => (
-                <button
-                  key={area.id}
-                  onClick={() => setSelectedArea(area)}
-                  className={`px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 flex-1 ${
-                    selectedArea?.id === area.id
-                      ? 'bg-white text-purple-700 shadow-md transform scale-105'
-                      : 'text-purple-600 hover:bg-white/70 hover:text-purple-800'
-                  }`}
-                >
-                  {area.name}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Contenido del área seleccionada */}
-          {selectedArea && (
-            <Card className="border-0 shadow-lg flex-1 flex flex-col overflow-y-auto">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-purple-600" />
-                  Comandas - {selectedArea.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ComandasList 
-                  areaId={selectedArea.id.toString()} 
-                  areaName={selectedArea.name}
-                  onUpdateStatus={updateComandaStatus}
-                  onMoveToProduccion={moveToProduccion}
-                  refresh={refresh}
-                />
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+        {/* Contenido del área seleccionada */}
+        {selectedArea && (
+          <Card className="border-0 shadow-lg flex-1 flex flex-col overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-600" />
+                Comandas - {selectedArea.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ComandasList 
+                areaId={selectedArea.id.toString()} 
+                areaName={selectedArea.name}
+                onUpdateProductStatus={updateProductStatus}
+                onMoveToProduccion={moveToProduccion}
+                refresh={refresh}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
@@ -204,14 +189,15 @@ export default function ComandasContent() {
 interface ComandasListProps {
   areaId: string
   areaName: string
-  onUpdateStatus: (id: string, status: "pending" | "preparing" | "ready" | "completed") => void
+  onUpdateProductStatus: (comandaId: string, productId: number, status: string) => Promise<void>
   onMoveToProduccion: (comanda: any) => void
   refresh: number
 }
 
-function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, refresh }: ComandasListProps) {
+function ComandasList({ areaId, areaName, onUpdateProductStatus, onMoveToProduccion, refresh }: ComandasListProps) {
   const { getComandasByArea, comandas } = useComandas()
   const [localComandas, setLocalComandas] = useState(() => getComandasByArea(areaName))
+  
   useEffect(() => {
     setLocalComandas(getComandasByArea(areaName))
   }, [areaName, refresh, getComandasByArea, comandas])
@@ -232,7 +218,7 @@ function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, re
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {localComandas.map((comanda) => (
+      {localComandas.filter(comanda => comanda.items.some(item => item.status !== 'completed')).map((comanda) => (
         <Card key={comanda.id} className="border shadow-md">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -247,7 +233,7 @@ function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, re
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {comanda.items.map((item, idx) => (
+              {comanda.items.filter(item => item.status !== 'completed').map((item, idx) => (
                 <div key={item.id + '-' + idx} className="flex items-center justify-between bg-white rounded p-1 border text-xs">
                   <div className="flex-1">
                     <span className="font-medium text-xs">{item.quantity}x {item.name}</span>
@@ -257,42 +243,24 @@ function ComandasList({ areaId, areaName, onUpdateStatus, onMoveToProduccion, re
                       {item.status === 'pending' ? 'Pendiente' : item.status === 'preparing' ? 'Preparando' : item.status === 'ready' ? 'Listo' : 'Completado'}
                     </Badge>
                     {item.status === "pending" && (
-                      <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={() => {
-                        const newItems = comanda.items.map((it, i) => i === idx ? { ...it, status: "ready" } : it)
-                        comanda.items = newItems
-                        onUpdateStatus(comanda.id, comanda.status)
+                      <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={async () => {
+                        await onUpdateProductStatus(comanda.id, item.id, 'preparing')
                       }} className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap">
                         <Loader2 className="h-3 w-3 mr-1" />
                         Empezar
                       </Button>
                     )}
+                    {item.status === "preparing" && (
+                      <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={async () => {
+                        await onUpdateProductStatus(comanda.id, item.id, 'ready')
+                      }} className="bg-green-500 hover:bg-green-600 whitespace-nowrap">
+                        <Check className="h-3 w-3 mr-1" />
+                        Listo
+                      </Button>
+                    )}
                     {item.status === "ready" && (
-                      <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={() => {
-                        // Marcar como completado y eliminar el producto de la comanda
-                        const newItems = comanda.items.filter((it, i) => i !== idx)
-                        if (newItems.length === 0) {
-                          // Si no quedan productos, eliminar la comanda completamente
-                          const businessId = getBusinessIdFromToken()
-                          const comandasKey = businessId ? `restaurante-comandas-${businessId}` : 'restaurante-comandas'
-                          const existingComandas = JSON.parse(localStorage.getItem(comandasKey) || '[]')
-                          const updatedComandas = existingComandas.filter((c: any) => c.id !== comanda.id)
-                          localStorage.setItem(comandasKey, JSON.stringify(updatedComandas))
-                          // Actualizar el estado local inmediatamente
-                          setLocalComandas(prev => prev.filter(c => c.id !== comanda.id))
-                        } else {
-                          // Actualizar la comanda con los items restantes
-                          const updatedComanda = { ...comanda, items: newItems }
-                          // Actualizar localStorage directamente
-                          const businessId = getBusinessIdFromToken()
-                          const comandasKey = businessId ? `restaurante-comandas-${businessId}` : 'restaurante-comandas'
-                          const existingComandas = JSON.parse(localStorage.getItem(comandasKey) || '[]')
-                          const updatedComandas = existingComandas.map((c: any) => 
-                            c.id === comanda.id ? updatedComanda : c
-                          )
-                          localStorage.setItem(comandasKey, JSON.stringify(updatedComandas))
-                          // Actualizar el estado local inmediatamente
-                          setLocalComandas(prev => prev.map(c => c.id === comanda.id ? updatedComanda : c))
-                        }
+                      <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={async () => {
+                        await onUpdateProductStatus(comanda.id, item.id, 'completed')
                         // Agregar a produccion solo este producto
                         onMoveToProduccion({
                           ...comanda,

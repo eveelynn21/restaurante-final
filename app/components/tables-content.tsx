@@ -16,7 +16,7 @@ import CreateClientDialog from "./create-client-dialog"
 import LocationSelectorModal from "./location-selector-modal"
 
 export default function TablesContent() {
-  const { updateTableStatus, addProductToTable } = useTables()
+  const { updateTableStatus, addProductToTable, forceReloadComandasState } = useTables()
   const { itemCount } = useCart()
   const [selectedTable, setSelectedTable] = useState<Table | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -41,6 +41,48 @@ export default function TablesContent() {
       }
     }
   }, [])
+
+  // Forzar recarga del estado real de comandas al cargar la página
+  useEffect(() => {
+    const reloadComandas = async () => {
+      try {
+        console.log('🔄 Forzando recarga de comandas al cargar /tables')
+        await forceReloadComandasState()
+        console.log('✅ Recarga de comandas completada')
+      } catch (error) {
+        console.error('❌ Error en recarga forzada de comandas:', error)
+      }
+    }
+    
+    // Ejecutar después de un breve delay para asegurar que las mesas estén cargadas
+    const timeoutId = setTimeout(reloadComandas, 1000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [forceReloadComandasState])
+
+  // Escuchar eventos de nuevos pedidos desde el QR
+  useEffect(() => {
+    const handleNewOrder = async (event: CustomEvent) => {
+      try {
+        console.log('🔄 Nuevo pedido recibido desde QR:', event.detail)
+        const { mesaId, orderData } = event.detail
+        
+        // Forzar recarga del estado de comandas para actualizar la mesa
+        await forceReloadComandasState()
+        
+        console.log('✅ Mesa actualizada automáticamente con nuevo pedido')
+      } catch (error) {
+        console.error('❌ Error actualizando mesa con nuevo pedido:', error)
+      }
+    }
+    
+    // Agregar listener para el evento personalizado
+    window.addEventListener('newOrderPlaced', handleNewOrder as EventListener)
+    
+    return () => {
+      window.removeEventListener('newOrderPlaced', handleNewOrder as EventListener)
+    }
+  }, [forceReloadComandasState])
 
   const handleLocationSelected = (location: { id: number; name: string }) => {
     setSelectedLocation(location)

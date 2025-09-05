@@ -63,7 +63,6 @@ export async function GET(req: Request) {
       }
     } else {
       console.log('📦 Obteniendo todos los productos...')
-      // SOLO productos del businessId del usuario
       const products = await executePosQuery(
         `SELECT p.*, v.sell_price_inc_tax, v.default_purchase_price, v.default_sell_price, v.dpp_inc_tax, v.profit_percent FROM products p 
          LEFT JOIN variations v ON p.id = v.product_id 
