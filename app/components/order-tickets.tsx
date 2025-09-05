@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react"
 import { Printer, Check, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Badge } from "../../components/ui/badge"
 import { useTables, type Table } from "../context/table-context"
 import { useComandas } from "../context/comandas-context"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 interface OrderTicketsProps {
   table: Table

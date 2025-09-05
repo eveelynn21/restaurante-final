@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createRecipe } from '@/lib/services/recipe-service';
-import { executePosQuery } from '@/lib/database';
+import { createRecipe } from '../../../lib/services/recipe-service';
+import { executePosQuery } from '../../../lib/database';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';

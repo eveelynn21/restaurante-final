@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllIngredientGroups, createIngredientGroup } from '@/lib/services/ingredient-group-service';
+import { getAllIngredientGroups, createIngredientGroup } from '../../../lib/services/ingredient-group-service';
 
 export async function GET() {
   try {

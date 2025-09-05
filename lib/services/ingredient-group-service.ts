@@ -1,4 +1,4 @@
-import { executePosQuery } from '@/lib/database';
+import { executePosQuery } from '../../lib/database';
 
 export async function getAllIngredientGroups() {
   const sql = 'SELECT * FROM mfg_ingredient_groups ORDER BY name ASC';

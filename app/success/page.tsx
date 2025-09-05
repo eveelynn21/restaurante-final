@@ -4,10 +4,10 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Printer } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "../../components/ui/button"
+import { Separator } from "../../components/ui/separator"
 import { useCart } from "../context/cart-context"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 export default function SuccessPage() {
   const router = useRouter()

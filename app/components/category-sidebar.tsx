@@ -4,8 +4,8 @@ import type React from "react"
 import { useState } from "react"
 
 import { Coffee, IceCream, LayoutGrid, Utensils, ChevronDown, ChevronRight, Grid3X3 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Button } from "../../components/ui/button"
+import { cn } from "../../lib/utils"
 
 interface CategorySidebarProps {
   selectedCategory: string

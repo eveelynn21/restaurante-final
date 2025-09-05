@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Search, X, Save, Loader2, Image as ImageIcon, Link, Package } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { formatPrice } from "@/lib/format-price"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Badge } from "../../components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
+import { Label } from "../../components/ui/label"
+import { Textarea } from "../../components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
+import { formatPrice } from "../../lib/format-price"
 
 interface ComboProduct {
   id: number

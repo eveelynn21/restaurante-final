@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getIngredientGroupById, updateIngredientGroup, deleteIngredientGroup } from '@/lib/services/ingredient-group-service';
+import { getIngredientGroupById, updateIngredientGroup, deleteIngredientGroup } from '../../../../lib/services/ingredient-group-service';
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {

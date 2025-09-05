@@ -1,13 +1,13 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Package, Calculator, AlertTriangle, CheckCircle, Clock, User, MapPin, AlertCircle, Database, FileText, X } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "../../components/ui/badge"
 import { useComandas } from "../context/comandas-context"
 import { toast } from "sonner"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 interface Transaction {
   id: number

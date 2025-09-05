@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import { Button } from '../../components/ui/button'
 import { Clock, CheckCircle, Loader2, AlertCircle, Plus, Minus, ShoppingCart, Menu, Search } from 'lucide-react'
 import { jwtDecode } from 'jwt-decode'
 

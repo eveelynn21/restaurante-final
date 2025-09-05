@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Printer, MapPin, User } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "../../components/ui/button"
+import { Separator } from "../../components/ui/separator"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Badge } from "../../components/ui/badge"
 import { useTables } from "../context/table-context"
 
 interface SplitReceiptsData {

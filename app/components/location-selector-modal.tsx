@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { MapPin, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
+import { Button } from "../../components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog"
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
+import { Label } from "../../components/ui/label"
 
 interface Location {
   id: number

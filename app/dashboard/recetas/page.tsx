@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import { useRouter } from "next/navigation";
 import { LayoutDashboard } from "lucide-react";
 

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Printer, MapPin } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "../../components/ui/button"
+import { Separator } from "../../components/ui/separator"
 
 interface TableReceipt {
   tableId: number

@@ -5,10 +5,10 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { PlusCircle, GripVertical } from "lucide-react"
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "../../components/ui/card"
 import { useCart } from "../context/cart-context"
-import type { Product } from "@/lib/services/product-service"
-import { formatPrice } from "@/lib/format-price"
+import type { Product } from "../../lib/services/product-service"
+import { formatPrice } from "../../lib/format-price"
 
 // Eliminar la declaración local de Product para evitar conflicto
 // interface Product {

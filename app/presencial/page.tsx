@@ -2,15 +2,15 @@
 
 import { useState } from "react"
 import { Search, ShoppingCart, User, LayoutDashboard } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+import { Input } from "../../components/ui/input"
+import { Button } from "../../components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
+import { Label } from "../../components/ui/label"
 import ProductGrid from "../components/product-grid"
 import CategorySidebar from "../components/category-sidebar"
 import { useCart } from "../context/cart-context"
 import { useRouter } from "next/navigation"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 export default function PresencialPage() {
   const [searchQuery, setSearchQuery] = useState("")

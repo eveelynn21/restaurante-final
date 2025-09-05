@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executePosQuery } from '@/lib/database';
+import { executePosQuery } from '../../../../lib/database';
 
 export async function POST(request: NextRequest) {
   try {

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Package, Info, Plus, X, Save } from "lucide-react"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { formatPrice } from "@/lib/format-price"
+import { Label } from "../../components/ui/label"
+import { Button } from "../../components/ui/button"
+import { formatPrice } from "../../lib/format-price"
 
 interface ComboProduct {
   id: number

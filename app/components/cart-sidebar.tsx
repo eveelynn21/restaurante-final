@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation"
 import { Minus, Plus, ShoppingCart, Trash2, Search, ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "../../components/ui/button"
 import { useCart } from "../context/cart-context"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 type CartSidebarProps = {
   searchQuery: string;

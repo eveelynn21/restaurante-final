@@ -3,11 +3,11 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "../../lib/utils"
 import { useTables, type Table } from "../context/table-context"
 import { ShoppingBag, Printer } from "lucide-react"
 import type { Product } from "../context/cart-context"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 interface DraggableTableProps {
   table: Table

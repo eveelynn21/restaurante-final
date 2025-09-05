@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { TrendingUp, DollarSign, ShoppingCart } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 
 interface DailySalesData {
   date: string

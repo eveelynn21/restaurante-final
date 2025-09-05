@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { executePosQuery } from '@/lib/database'
+import { executePosQuery } from '../../../lib/database'
 import jwt from 'jsonwebtoken'
 import type { RowDataPacket } from 'mysql2'
 

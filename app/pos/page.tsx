@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { Search, MapPin, LayoutDashboard, Grid3X3, ChevronDown, ChevronRight, User } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Input } from "../../components/ui/input"
 import ProductGrid from "../components/product-grid"
 import CartSidebar from "../components/cart-sidebar"
 import CategorySidebar from "../components/category-sidebar"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useTables } from "../context/table-context"
-import { Button } from "@/components/ui/button"
+import { Button } from "../../components/ui/button"
 import { CartProvider, useCart } from "../context/cart-context"
 import ClientSearchDialog from "../components/client-search-dialog"
 import CreateClientDialog from "../components/create-client-dialog"
 import LocationSelectorModal from "../components/location-selector-modal"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog"
 
 
 function POSContent() {

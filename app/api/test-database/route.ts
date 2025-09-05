@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { executePosQuery } from '@/lib/database'
-import { verifyToken } from '@/lib/utils'
+import { executePosQuery } from '../../../lib/database'
+import { verifyToken } from '../../../lib/utils'
 
 export async function GET(req: NextRequest) {
   try {

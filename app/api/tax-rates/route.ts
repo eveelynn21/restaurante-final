@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTaxRates } from '@/lib/services/tax-service'
+import { getTaxRates } from '../../../lib/services/tax-service'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'

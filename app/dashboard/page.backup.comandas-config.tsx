@@ -35,9 +35,9 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card"
+import { Badge } from "../../components/ui/badge"
 import { useTables } from "../context/table-context"
 import { jwtDecode } from "jwt-decode"
 import ProductManagement from "../components/product-management"

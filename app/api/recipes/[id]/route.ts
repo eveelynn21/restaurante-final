@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getRecipeById, updateRecipe, deleteRecipe } from '@/lib/services/recipe-service';
+import { getRecipeById, updateRecipe, deleteRecipe } from '../../../../lib/services/recipe-service';
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {

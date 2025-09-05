@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getProductsByBusinessId, getProductById } from '@/lib/services/product-service'
-import { executePosQuery } from '@/lib/database'
+import { getProductsByBusinessId, getProductById } from '../../../lib/services/product-service'
+import { executePosQuery } from '../../../lib/database'
 import jwt from 'jsonwebtoken'
-import { createProduct, updateProduct, deleteProduct, getProducts } from '@/lib/services/product-service'
+import { createProduct, updateProduct, deleteProduct, getProducts } from '../../../lib/services/product-service'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'
 

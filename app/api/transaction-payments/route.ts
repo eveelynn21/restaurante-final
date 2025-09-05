@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { executePosQuery } from '@/lib/database'
+import { executePosQuery } from '../../../lib/database'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey'

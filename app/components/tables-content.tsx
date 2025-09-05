@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { ShoppingCart, Search, Clock, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
 import RestaurantCanvas from "./restaurant-canvas"
 import ProductGrid from "./product-grid"
 import CategorySidebar from "./category-sidebar"

@@ -1,4 +1,4 @@
-import { executePosQuery } from '@/lib/database';
+import { executePosQuery } from '../../lib/database';
 
 export async function getAllRecipes(all = false) {
   let sql;

@@ -1,7 +1,7 @@
 "use client"
 
 import ProduccionContent from "../components/produccion-content"
-import { Button } from "@/components/ui/button"
+import { Button } from "../../components/ui/button"
 import { LayoutDashboard } from "lucide-react"
 import { useRouter } from "next/navigation"
 

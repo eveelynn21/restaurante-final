@@ -2,15 +2,15 @@
 
 import { useState } from "react"
 import { Users, User, DollarSign, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Input } from "../../components/ui/input"
+import { Badge } from "../../components/ui/badge"
+import { Separator } from "../../components/ui/separator"
+import { Checkbox } from "../../components/ui/checkbox"
 import { useTables, type Table } from "../context/table-context"
 import { useRouter } from "next/navigation"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 interface SplitBillProps {
   table: Table
