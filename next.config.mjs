@@ -4,10 +4,10 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     // Habilitar características experimentales de React 19
-    reactCompiler: false,
-    // Configuración para Render
-    serverComponentsExternalPackages: ['mysql2', 'bcryptjs']
+    reactCompiler: false
   },
+  // Configuración para Render - movido fuera de experimental
+  serverExternalPackages: ['mysql2', 'bcryptjs'],
   images: {
     domains: ['localhost', 'tu-app.onrender.com'],
     unoptimized: true

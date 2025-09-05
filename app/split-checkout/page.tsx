@@ -283,7 +283,7 @@ export default function SplitCheckoutPage() {
     setPaymentMethods((prev) => ({ ...prev, [billId]: method }))
   }
 
-  const handleCompleteAllPayments = () => {
+  const handleCompleteAllPayments = async () => {
     // Store receipt data for all bills
     localStorage.setItem(
       "split-receipts",
