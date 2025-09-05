@@ -4,11 +4,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Wallet, QrCode } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "../../components/ui/button"
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
+import { Label } from "../../components/ui/label"
+import { Separator } from "../../components/ui/separator"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { useCart } from "../context/cart-context"
 
 export default function CheckoutPage() {
