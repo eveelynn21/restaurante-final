@@ -48,9 +48,12 @@ export async function POST(request: NextRequest) {
     console.log(`📋 Encontradas ${tables.length} mesas sin QR`)
 
     let generatedCount = 0
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? process.env.NEXT_PUBLIC_BASE_URL || 'https://tu-dominio.com'
-      : 'http://localhost:3000'
+    
+    // Obtener la URL base desde variable de entorno o automáticamente
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+      (process.env.NODE_ENV === 'production' 
+        ? `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`
+        : 'http://localhost:3000')
 
     for (const table of tables) {
       try {
