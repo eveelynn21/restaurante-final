@@ -399,7 +399,7 @@ export default function PedidoEstadoPage() {
           },
           body: JSON.stringify({
             mesa_id: parseInt(mesaId),
-            business_id: businessIdFromToken,
+            business_id: businessId,
             items: newItems
           })
         })
