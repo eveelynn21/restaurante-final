@@ -463,17 +463,26 @@ export default function PedidoEstadoPage() {
 
   if (error && !showMenu) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{error}</p>
-          <Button 
-            onClick={() => setShowMenu(true)} 
-            className="mt-4"
-            variant="outline"
-          >
-            Ver Menú
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg p-8 border border-purple-100">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Menu className="h-10 w-10 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              ¡Bienvenido!
+            </h2>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              {error}
+            </p>
+            <Button 
+              onClick={() => setShowMenu(true)} 
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+            >
+              <Menu className="h-5 w-5 mr-2" />
+              Ver Menú y Realizar Pedido
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -483,8 +492,8 @@ export default function PedidoEstadoPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No hay pedidos activos</p>
+          <Menu className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-600">Realiza tu pedido</p>
           <Button 
             onClick={() => setShowMenu(true)} 
             className="mt-4"
@@ -550,14 +559,13 @@ export default function PedidoEstadoPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
             {pedido ? 'Estado de tu Pedido' : 'Mesa ' + getMesaId()}
           </h1>
-          <p className="text-gray-600">Mesa {getMesaId()}</p>
           
           {/* Botones de acción */}
           <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 mt-4">
             <Button
               onClick={() => setShowMenu(!showMenu)}
               variant={showMenu ? "outline" : "default"}
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 ${showMenu ? 'border-purple-500 text-purple-600 hover:bg-purple-50' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
             >
               <Menu className="h-4 w-4" />
               {showMenu ? 'Ocultar Menú' : 'Ver Menú'}
@@ -637,7 +645,7 @@ export default function PedidoEstadoPage() {
                         {product.category_name && (
                           <p className="text-xs text-gray-600 mb-1">{product.category_name}</p>
                         )}
-                        <p className="font-bold text-orange-600 text-xs sm:text-sm">${Math.round(product.sell_price_inc_tax)}</p>
+                        <p className="font-bold text-purple-600 text-xs sm:text-sm">$ {Math.round(product.sell_price_inc_tax).toLocaleString('es-CO')}</p>
               </div>
             ))}
           </div>
@@ -651,14 +659,8 @@ export default function PedidoEstadoPage() {
         {pedido && (
           <>
             <Card className="mb-4 sm:mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  {getStatusIcon(pedido.status)}
-                  Estado General: {getStatusText(pedido.status)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm sm:text-base text-gray-600">
+              <CardContent className="pt-6">
+                <p className="text-sm sm:text-base text-gray-600 text-center">
                   Pedido realizado el {new Date(pedido.createdAt).toLocaleString()}
                 </p>
               </CardContent>
@@ -684,7 +686,7 @@ export default function PedidoEstadoPage() {
                         <div className="min-w-0 flex-1">
                           <h3 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{item.name}</h3>
                           <p className="text-xs sm:text-sm text-gray-600">Cantidad: {item.quantity}</p>
-                          <p className="font-medium text-gray-800 text-sm sm:text-base">${Math.round(item.price)}</p>
+                          <p className="font-medium text-gray-800 text-sm sm:text-base">$ {Math.round(item.price).toLocaleString('es-CO')}</p>
             </div>
           </div>
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -706,7 +708,7 @@ export default function PedidoEstadoPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <span className="text-lg sm:text-xl font-bold text-orange-600">${Math.round(pedido.total)}</span>
+                  <span className="text-lg sm:text-xl font-bold text-purple-600">$ {Math.round(pedido.total).toLocaleString('es-CO')}</span>
               </div>
               </CardContent>
             </Card>
@@ -755,7 +757,7 @@ export default function PedidoEstadoPage() {
                     <span className="truncate flex-1 mr-2">{item.name}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-600">x{item.quantity}</span>
-                      <span className="font-medium">${Math.round(item.price * item.quantity)}</span>
+                      <span className="font-medium">$ {Math.round(item.price * item.quantity).toLocaleString('es-CO')}</span>
                     </div>
                   </div>
                 ))}
@@ -763,7 +765,7 @@ export default function PedidoEstadoPage() {
               <div className="border-t pt-2 mt-2">
                 <div className="flex items-center justify-between mb-2 text-sm sm:text-base">
                   <span className="font-semibold">Total:</span>
-                  <span className="font-bold text-orange-600">${Math.round(getCartTotal())}</span>
+                  <span className="font-bold text-purple-600">$ {Math.round(getCartTotal()).toLocaleString('es-CO')}</span>
                 </div>
                 <Button onClick={handlePlaceOrder} className="w-full" size="sm" className="text-xs sm:text-sm">
                   Realizar Pedido

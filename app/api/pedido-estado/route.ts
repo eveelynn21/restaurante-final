@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (!comandas || comandas.length === 0) {
       return NextResponse.json({ 
         success: false, 
-        message: 'No se encontraron comandas para esta mesa' 
+        message: 'Realiza tu pedido' 
       })
     }
 

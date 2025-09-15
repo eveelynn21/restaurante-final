@@ -252,14 +252,6 @@ function ComandasList({ areaId, areaName, onUpdateProductStatus, onMoveToProducc
                     )}
                     {item.status === "preparing" && (
                       <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={async () => {
-                        await onUpdateProductStatus(comanda.id, item.id, 'ready')
-                      }} className="bg-green-500 hover:bg-green-600 whitespace-nowrap">
-                        <Check className="h-3 w-3 mr-1" />
-                        Listo
-                      </Button>
-                    )}
-                    {item.status === "ready" && (
-                      <Button size="sm" style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '70px' }} onClick={async () => {
                         await onUpdateProductStatus(comanda.id, item.id, 'completed')
                         // Agregar a produccion solo este producto
                         onMoveToProduccion({
