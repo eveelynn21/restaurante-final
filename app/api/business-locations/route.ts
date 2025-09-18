@@ -26,9 +26,9 @@ export async function GET(req: Request) {
     const { businessId } = verifyToken(authHeader)
 
     const locations = await executePosQuery(
-      'SELECT bl.id, bl.name FROM business_locations bl WHERE business_id = ?',
+      'SELECT bl.id, bl.name, bl.propina FROM business_locations bl WHERE business_id = ?',
       [businessId]
-    ) as Array<{ id: number; name: string }>
+    ) as Array<{ id: number; name: string; propina: number }>
 
     return NextResponse.json({ locations })
   } catch (error) {

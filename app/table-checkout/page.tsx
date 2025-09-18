@@ -57,6 +57,32 @@ const getDefaultClientId = async (): Promise<number | null> => {
   }
 }
 
+// Helper function to get propina info from location
+const getPropinaInfo = async (locationId: number): Promise<{ porcentaje: number; monto: number } | null> => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return null
+    
+    const response = await fetch('/api/business-locations', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    const location = data.locations?.find((loc: any) => loc.id === locationId)
+    
+    if (!location || !location.propina || location.propina <= 0) return null
+    
+    return {
+      porcentaje: location.propina,
+      monto: 0 // Se calculará en el componente
+    }
+  } catch {
+    return null
+  }
+}
+
 export default function TableCheckoutPage() {
   const router = useRouter()
   const { completeTableOrder, clearTableOrder } = useTables()
@@ -68,6 +94,7 @@ export default function TableCheckoutPage() {
   const [selectedClient, setSelectedClient] = useState<{ id: number; name: string } | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<any>(null)
+  const [propinaInfo, setPropinaInfo] = useState<{ porcentaje: number; monto: number } | null>(null)
 
   useEffect(() => {
     // Verificar si estamos editando una factura
@@ -92,6 +119,22 @@ export default function TableCheckoutPage() {
         console.error("Error parsing selected client:", error)
       }
     }
+
+    // Cargar información de propina de la ubicación
+    const loadPropinaInfo = async () => {
+      const businessLocation = localStorage.getItem('selectedLocation')
+      if (businessLocation) {
+        try {
+          const location = JSON.parse(businessLocation)
+          const propina = await getPropinaInfo(location.id)
+          setPropinaInfo(propina)
+        } catch (error) {
+          console.error("Error loading propina info:", error)
+        }
+      }
+    }
+    
+    loadPropinaInfo()
 
     // Forzar recarga del carrito si el contexto está vacío pero localStorage tiene productos
     if (cart.length === 0) {
@@ -172,7 +215,8 @@ export default function TableCheckoutPage() {
   }
 
   const tax = 0 // Los productos ya tienen impuesto incluido
-  const grandTotal = tempOrder.total // El total ya incluye impuestos
+  const propinaMonto = propinaInfo ? +(tempOrder.total * (propinaInfo.porcentaje / 100)).toFixed(2) : 0
+  const grandTotal = tempOrder.total + propinaMonto // El total ya incluye impuestos + propina
 
   const handlePayment = async () => {
     try {
@@ -342,7 +386,7 @@ export default function TableCheckoutPage() {
           });
         } else if (!usaComandas) {
           // Si NO se usan comandas, subir todo a producción como registro
-          const produccionItems = tempOrder.items.map(item => ({ ...item, status: 'completed' }));
+          const produccionItems = tempOrder.items.map(item => ({ ...item, status: 'completed' as const }));
           const produccionObj = {
             id: `prod-factura-${transactionResult.id || Date.now()}`,
             comandaId: null,
@@ -421,6 +465,10 @@ export default function TableCheckoutPage() {
           date: new Date().toLocaleString(),
           transactionId: transactionResult?.id || existingTransactionId,
           fromCart: fromCart, // Agregar información del origen
+          propina: propinaInfo ? {
+            porcentaje: propinaInfo.porcentaje,
+            monto: propinaMonto
+          } : undefined,
         }),
       )
 
@@ -443,149 +491,197 @@ export default function TableCheckoutPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
-      <Button variant="ghost" className="mb-6" onClick={() => router.push("/tables")}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver a Mesas
-      </Button>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto max-w-4xl py-8 px-4">
+        {/* Header simplificado */}
+        <div className="mb-8">
+          <Button 
+            variant="ghost" 
+            className="mb-6 text-gray-600 hover:text-gray-900 hover:bg-gray-100" 
+            onClick={() => router.push(fromCart ? "/pos" : "/tables")}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {fromCart ? "Volver a POS" : "Volver a Mesas"}
+          </Button>
 
-      <div className="flex items-center gap-4 mb-6">
-        <Receipt className="h-8 w-8" />
-        <div>
-          <h1 className="text-3xl font-bold">
-            {isEditing ? "Editar Factura" : "Facturación"}
-            {isEditing && (
-              <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                #{editingTransaction?.invoice_no}
-              </span>
-            )}
-          </h1>
-          {isEditing ? (
-            <p className="text-muted-foreground">Editando factura existente</p>
-          ) : fromCart ? (
-            <p className="text-muted-foreground">Pedido POS (sin mesa)</p>
-          ) : (
-            <p className="text-muted-foreground">Mesa {tempOrder.tableNumber}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-2">
-        <div>
-          <h2 className="mb-4 text-xl font-semibold">Resumen del Pedido</h2>
-          <div className="rounded-lg border p-4 bg-white">
-            {/* Agrupar productos iguales para la visualización */}
-            {Object.values(
-              tempOrder.items.reduce((acc, item) => {
-                if (!item.id) return acc;
-                const key = String(item.id);
-                if (!acc[key]) {
-                  acc[key] = { ...item };
-                } else {
-                  acc[key].quantity += item.quantity;
-                }
-                return acc;
-              }, {} as Record<string, typeof tempOrder.items[0]>)
-            ).map((item, index) => (
-              <div key={item.id + '-' + index} className="mb-3 flex items-center gap-3">
-                <img
-                  src={item.image || "/placeholder.svg"}
-                  alt={item.name}
-                  className="w-12 h-12 object-cover rounded border"
-                />
-                <div className="flex-1">
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatPrice(Number(item.price) || 0)} × {item.quantity}
-                  </p>
-                </div>
-                <p className="font-medium">{formatPrice((Number(item.price) || 0) * item.quantity)}</p>
-              </div>
-            ))}
-
-            <Separator className="my-4" />
-
-            <div className="space-y-2">
-              <div className="flex justify-between font-bold text-lg">
-                <p>Total</p>
-                <p>{formatPrice(grandTotal)}</p>
-              </div>
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-semibold text-gray-900">
+                {isEditing ? "Editar Factura" : "Facturación"}
+              </h1>
+              {isEditing && (
+                <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-md font-medium">
+                  #{editingTransaction?.invoice_no}
+                </span>
+              )}
             </div>
+            <p className="text-gray-600">
+              {isEditing ? "Editando factura existente" : fromCart ? "Pedido POS (sin mesa)" : `Mesa ${tempOrder.tableNumber}`}
+            </p>
           </div>
         </div>
 
-        <div>
-          <h2 className="mb-4 text-xl font-semibold">Método de Pago</h2>
-          <div className="rounded-lg border p-4 bg-white">
-            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-              <div className="flex items-center space-x-2 rounded-md border p-3">
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex items-center">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Tarjeta Débito/Crédito
-                </Label>
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Resumen del Pedido Simplificado */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Resumen del Pedido</h2>
+            
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              {/* Lista de productos simplificada */}
+              <div className="space-y-4 mb-6">
+                {Object.values(
+                  tempOrder.items.reduce((acc, item) => {
+                    if (!item.id) return acc;
+                    const key = String(item.id);
+                    if (!acc[key]) {
+                      acc[key] = { ...item };
+                    } else {
+                      acc[key].quantity += item.quantity;
+                    }
+                    return acc;
+                  }, {} as Record<string, typeof tempOrder.items[0]>)
+                ).map((item, index) => (
+                  <div key={item.id + '-' + index} className="flex items-center gap-4 py-3">
+                    <img
+                      src={item.image || "/placeholder.svg"}
+                      alt={item.name}
+                      className="w-12 h-12 object-cover rounded-lg"
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{item.name}</h3>
+                      <p className="text-sm text-gray-500">
+                        {formatPrice(Number(item.price) || 0)} × {item.quantity}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        {formatPrice((Number(item.price) || 0) * item.quantity)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3">
-                <RadioGroupItem value="cash" id="cash" />
-                <Label htmlFor="cash" className="flex items-center">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Efectivo
-                </Label>
+              {/* Resumen de costos simplificado */}
+              <div className="border-t border-gray-200 pt-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span className="font-medium">{formatPrice(tempOrder.total)}</span>
+                  </div>
+                  
+                  {propinaInfo && propinaInfo.porcentaje > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Propina ({propinaInfo.porcentaje}%)
+                      </span>
+                      <span className="font-medium">{formatPrice(propinaMonto)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="border-t border-gray-200 pt-3">
+                    <div className="flex justify-between">
+                      <span className="text-lg font-semibold text-gray-900">Total</span>
+                      <span className="text-lg font-semibold text-gray-900">
+                        {formatPrice(grandTotal)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+          </div>
 
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3 bg-green-50">
-                <RadioGroupItem value="nequi" id="nequi" />
-                <Label htmlFor="nequi" className="flex items-center">
-                  <div className="w-4 h-4 bg-purple-600 rounded mr-2"></div>
-                  Nequi
-                </Label>
+          {/* Métodos de Pago Simplificados */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Método de Pago</h2>
+            
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
+                {/* Tarjeta */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="card" id="card" />
+                  <CreditCard className="h-5 w-5 text-gray-600" />
+                  <Label htmlFor="card" className="flex-1 cursor-pointer">
+                    Tarjeta Débito/Crédito
+                  </Label>
+                </div>
+
+                {/* Efectivo */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Wallet className="h-5 w-5 text-gray-600" />
+                  <Label htmlFor="cash" className="flex-1 cursor-pointer">
+                    Efectivo
+                  </Label>
+                </div>
+
+                {/* Nequi */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="nequi" id="nequi" />
+                  <div className="w-5 h-5 bg-purple-600 rounded"></div>
+                  <Label htmlFor="nequi" className="flex-1 cursor-pointer">
+                    Nequi
+                  </Label>
+                </div>
+
+                {/* Bancolombia */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="bancolombia" id="bancolombia" />
+                  <div className="w-5 h-5 bg-yellow-500 rounded"></div>
+                  <Label htmlFor="bancolombia" className="flex-1 cursor-pointer">
+                    Bancolombia
+                  </Label>
+                </div>
+
+                {/* Daviplata */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="daviplata" id="daviplata" />
+                  <div className="w-5 h-5 bg-orange-500 rounded"></div>
+                  <Label htmlFor="daviplata" className="flex-1 cursor-pointer">
+                    Daviplata
+                  </Label>
+                </div>
+
+                {/* Transferencia Bancaria */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="transferencia" id="transferencia" />
+                  <div className="w-5 h-5 bg-blue-500 rounded"></div>
+                  <Label htmlFor="transferencia" className="flex-1 cursor-pointer">
+                    Transferencia Bancaria
+                  </Label>
+                </div>
+
+                {/* Addi */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="addi" id="addi" />
+                  <div className="w-5 h-5 bg-pink-500 rounded"></div>
+                  <Label htmlFor="addi" className="flex-1 cursor-pointer">
+                    Addi (Crédito)
+                  </Label>
+                </div>
+
+                {/* Sistecredito */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="sistecredito" id="sistecredito" />
+                  <div className="w-5 h-5 bg-red-500 rounded"></div>
+                  <Label htmlFor="sistecredito" className="flex-1 cursor-pointer">
+                    Sistecredito
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {/* Botón de pago simplificado */}
+              <div className="mt-8">
+                <Button 
+                  className="w-full h-12 text-base font-medium bg-gray-900 hover:bg-gray-800 text-white" 
+                  size="lg" 
+                  onClick={handlePayment}
+                >
+                  {isEditing ? "Actualizar Factura" : "Procesar Pago"} - {formatPrice(grandTotal)}
+                </Button>
               </div>
-
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3 bg-yellow-50">
-                <RadioGroupItem value="bancolombia" id="bancolombia" />
-                <Label htmlFor="bancolombia" className="flex items-center">
-                  <div className="w-4 h-4 bg-yellow-500 rounded mr-2"></div>
-                  Bancolombia
-                </Label>
-              </div>
-
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3 bg-orange-50">
-                <RadioGroupItem value="daviplata" id="daviplata" />
-                <Label htmlFor="daviplata" className="flex items-center">
-                  <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
-                  Daviplata
-                </Label>
-              </div>
-
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3 bg-blue-50">
-                <RadioGroupItem value="transferencia" id="transferencia" />
-                <Label htmlFor="transferencia" className="flex items-center">
-                  <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                  Transferencia Bancaria
-                </Label>
-              </div>
-
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3 bg-pink-50">
-                <RadioGroupItem value="addi" id="addi" />
-                <Label htmlFor="addi" className="flex items-center">
-                  <div className="w-4 h-4 bg-pink-500 rounded mr-2"></div>
-                  Addi (Crédito)
-                </Label>
-              </div>
-
-              <div className="mt-3 flex items-center space-x-2 rounded-md border p-3 bg-red-50">
-                <RadioGroupItem value="sistecredito" id="sistecredito" />
-                <Label htmlFor="sistecredito" className="flex items-center">
-                  <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
-                  Sistecredito
-                </Label>
-              </div>
-            </RadioGroup>
-
-            <Button className="mt-6 w-full" size="lg" onClick={handlePayment}>
-              {isEditing ? "Actualizar Factura" : "Procesar Pago"} - {formatPrice(grandTotal)}
-            </Button>
+            </div>
           </div>
         </div>
       </div>

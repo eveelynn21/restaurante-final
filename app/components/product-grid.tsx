@@ -30,6 +30,8 @@ export default function ProductGrid({ category, searchQuery, compact = false, on
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 9
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -98,6 +100,17 @@ export default function ProductGrid({ category, searchQuery, compact = false, on
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Calcular paginación
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex)
+
+  // Resetear página cuando cambie la categoría o búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [category, searchQuery])
+
   console.log("PRODUCTOS:", products);
   console.log("CATEGORÍA SELECCIONADA:", category);
   console.log("FILTRADOS:", filteredProducts);
@@ -138,8 +151,9 @@ export default function ProductGrid({ category, searchQuery, compact = false, on
 
   if (compact) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredProducts.map((product) => (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {paginatedProducts.map((product) => (
           <Card
             key={product.id}
             className="glass-card overflow-hidden hover-lift cursor-grab active:cursor-grabbing group border-0"
@@ -193,13 +207,38 @@ export default function ProductGrid({ category, searchQuery, compact = false, on
             </div>
           </div>
         )}
-      </div>
+        </div>
+        
+        {/* Controles de paginación */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span className="text-sm text-gray-600">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
+      </>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 p-6">
-      {filteredProducts.map((product) => (
+    <>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 p-6">
+        {paginatedProducts.map((product) => (
         <Card
           key={product.id}
           className="glass-card overflow-hidden hover-lift cursor-grab active:cursor-grabbing group border-0 relative"
@@ -249,19 +288,43 @@ export default function ProductGrid({ category, searchQuery, compact = false, on
         </Card>
       ))}
 
-      {filteredProducts.length === 0 && (
-        <div className="col-span-full py-16 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="glass-card p-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-accent/30 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <GripVertical className="h-8 w-8 text-muted-foreground" />
+        {filteredProducts.length === 0 && (
+          <div className="col-span-full py-16 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="glass-card p-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-accent/30 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <GripVertical className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold gradient-text mb-2">No se encontraron productos</h3>
+                <p className="text-muted-foreground text-sm">Intenta cambiar la categoría o el término de búsqueda</p>
               </div>
-              <h3 className="text-lg font-semibold gradient-text mb-2">No se encontraron productos</h3>
-              <p className="text-muted-foreground text-sm">Intenta cambiar la categoría o el término de búsqueda</p>
             </div>
           </div>
+        )}
+      </div>
+      
+      {/* Controles de paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Anterior
+          </button>
+          <span className="text-sm text-gray-600">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Siguiente
+          </button>
         </div>
       )}
-    </div>
+    </>
   )
 }

@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     }
 
     // Crear JWT
-    const token = jwt.sign({ user_id: user.id, business_id: user.business_id }, JWT_SECRET, { expiresIn: '2h' })
+    const token = jwt.sign({ user_id: user.id, business_id: user.business_id }, JWT_SECRET)
     console.log('✅ Login exitoso para usuario:', username, 'business_id:', user.business_id)
 
     return NextResponse.json({

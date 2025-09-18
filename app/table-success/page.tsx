@@ -18,6 +18,10 @@ interface TableReceipt {
   receiptNumber: number
   date: string
   fromCart?: boolean // Indicador si viene del POS
+  propina?: {
+    porcentaje: number
+    monto: number
+  }
 }
 
 export default function TableSuccessPage() {
@@ -106,6 +110,17 @@ export default function TableSuccessPage() {
         <Separator className="my-4" />
 
         <div className="space-y-2">
+          <div className="flex justify-between">
+            <p>Subtotal</p>
+            <p>${receipt.total.toFixed(2)}</p>
+          </div>
+          {receipt.propina && receipt.propina.porcentaje > 0 && (
+            <div className="flex justify-between">
+              <p>Propina ({receipt.propina.porcentaje}%)</p>
+              <p>${receipt.propina.monto.toFixed(2)}</p>
+            </div>
+          )}
+          <Separator />
           <div className="flex justify-between font-bold">
             <p>Total</p>
             <p>${receipt.grandTotal.toFixed(2)}</p>

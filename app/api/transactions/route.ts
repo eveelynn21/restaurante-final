@@ -36,6 +36,18 @@ export async function POST(req: Request) {
       items = []
     } = await req.json()
     
+    // Obtener el porcentaje de propina de la ubicación
+    const locationInfo = await executePosQuery(
+      'SELECT propina FROM business_locations WHERE id = ?',
+      [location_id]
+    ) as any[]
+    
+    const propinaPorcentaje = locationInfo[0]?.propina || 0
+    const propinaMonto = +(final_total * (propinaPorcentaje / 100)).toFixed(2)
+    const totalConPropina = +(final_total + propinaMonto).toFixed(2)
+    
+    console.log('💰 Propina calculada:', { propinaPorcentaje, propinaMonto, totalConPropina })
+    
     console.log('📝 Datos recibidos:', { location_id, contact_id, invoice_number, prefix, final_total, businessId, userId })
     
     if (!location_id || !contact_id || invoice_number === undefined || !prefix || final_total === undefined) {
@@ -97,7 +109,7 @@ export async function POST(req: Request) {
         invoice_number,       // number
         invoice_no,           // invoice_no (prefix + number)
         transaction_date,     // transaction_date (hora Bogotá)
-        final_total,          // final_total
+        totalConPropina,      // final_total (ya incluye propina)
         userId,               // created_by
         created_at,           // created_at (hora Bogotá)
         updated_at,           // updated_at (hora Bogotá)
@@ -272,7 +284,12 @@ export async function POST(req: Request) {
       success: true,
       transaction_id: result.insertId,
       invoice_no: invoice_no,
-      transaction_date: transaction_date
+      transaction_date: transaction_date,
+      propina: {
+        porcentaje: propinaPorcentaje,
+        monto: propinaMonto,
+        total_con_propina: totalConPropina
+      }
     })
   } catch (error) {
     console.error('Error creating transaction:', error)
