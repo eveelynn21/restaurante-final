@@ -327,15 +327,16 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col lg:flex-row">
       {/* Canvas Area */}
       <div className="flex-1 relative bg-slate-50 border rounded-lg overflow-hidden">
         {/* Canvas Header */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center">
-          <div className="flex gap-2">
-            <Button variant={isDragMode ? "default" : "outline"} size="sm" onClick={() => setIsDragMode(!isDragMode)}>
-              {isDragMode ? <Move className="h-4 w-4 mr-2" /> : <Hand className="h-4 w-4 mr-2" />}
-              {isDragMode ? "Editando" : "Selección"}
+        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-20 flex justify-between items-center">
+          <div className="flex gap-1 sm:gap-2">
+            <Button variant={isDragMode ? "default" : "outline"} size="sm" onClick={() => setIsDragMode(!isDragMode)} className="text-xs sm:text-sm">
+              {isDragMode ? <Move className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> : <Hand className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
+              <span className="hidden sm:inline">{isDragMode ? "Editando" : "Selección"}</span>
+              <span className="sm:hidden">{isDragMode ? "Edit" : "Sel"}</span>
             </Button>
             {/* 
 <NewTableDialog>
@@ -346,9 +347,10 @@ export default function RestaurantCanvas({ onTableSelect, resTables, searchQuery
 </NewTableDialog>
 */}
             <NewTableDialog>
-              <Button variant="outline" size="sm" className="bg-blue-50 border-blue-200 hover:bg-blue-100">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Mesa
+              <Button variant="outline" size="sm" className="bg-blue-50 border-blue-200 hover:bg-blue-100 text-xs sm:text-sm">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Agregar Mesa</span>
+                <span className="sm:hidden">Agregar</span>
               </Button>
             </NewTableDialog>
             {/* Debug: Verificar que el diálogo funciona */}

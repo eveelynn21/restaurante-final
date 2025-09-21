@@ -1,0 +1,259 @@
+/* Responsive styles for POS system */
+/* Mobile and tablet adaptations without affecting desktop */
+
+/* Mobile styles (up to 768px) */
+@media (max-width: 768px) {
+  /* POS Header adjustments */
+  .pos-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .pos-title {
+    font-size: 1.25rem;
+    text-align: center;
+  }
+  
+  .pos-location {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+  }
+  
+  .pos-location span {
+    display: none;
+  }
+  
+  .pos-location span:first-child {
+    display: inline;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .pos-buttons {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .pos-nav-button {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .pos-nav-button span:not(.sm\\:hidden) {
+    display: none;
+  }
+  
+  .pos-nav-button .sm\\:hidden {
+    display: inline;
+  }
+  
+  /* Main layout adjustments */
+  .pos-main-layout {
+    flex-direction: column;
+  }
+  
+  .pos-products {
+    padding: 0.5rem;
+  }
+  
+  .pos-cart {
+    width: 100%;
+    max-height: 50vh;
+    order: 2;
+  }
+  
+  .pos-products-section {
+    order: 1;
+    flex: 1;
+  }
+}
+
+/* Tablet styles (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .pos-header {
+    padding: 1rem;
+  }
+  
+  .pos-title {
+    font-size: 1.5rem;
+  }
+  
+  .pos-location {
+    font-size: 0.875rem;
+  }
+  
+  .pos-nav-button {
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .pos-main-layout {
+    flex-direction: row;
+  }
+  
+  .pos-cart {
+    width: 300px;
+  }
+}
+
+/* Desktop styles (1025px and up) - keep original design */
+@media (min-width: 1025px) {
+  .pos-header {
+    /* Original desktop styles maintained */
+  }
+  
+  .pos-main-layout {
+    /* Original desktop layout maintained */
+  }
+}
+
+/* ===== TABLES PAGE RESPONSIVE ===== */
+
+/* Mobile styles for /tables (up to 768px) */
+@media (max-width: 768px) {
+  /* Tables header adjustments */
+  .tables-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .tables-title {
+    font-size: 1.25rem;
+    text-align: center;
+  }
+  
+  .tables-nav-buttons {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+  }
+  
+  .tables-nav-button {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .tables-nav-button span:not(.sm\\:hidden) {
+    display: none;
+  }
+  
+  .tables-nav-button .sm\\:hidden {
+    display: inline;
+  }
+  
+  /* Main layout adjustments */
+  .tables-main-layout {
+    flex-direction: column;
+  }
+  
+  .tables-categories {
+    width: 100%;
+    max-height: 200px;
+    order: 1;
+  }
+  
+  .tables-products {
+    width: 100%;
+    order: 2;
+    flex: 1;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+  }
+  
+  .tables-products.expanded {
+    max-height: 50vh;
+  }
+  
+  .tables-canvas {
+    display: none; /* Hide canvas on mobile */
+  }
+  
+  .tables-cart {
+    width: 100%;
+    max-height: 50vh;
+    order: 3;
+  }
+  
+  .tables-products-content {
+    padding: 0.5rem;
+  }
+  
+  .tables-toggle-products {
+    display: block;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: #7c3aed;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .tables-toggle-products:hover {
+    background: #6d28d9;
+    transform: scale(1.1);
+  }
+}
+
+/* Tablet styles for /tables (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tables-header {
+    padding: 1rem;
+  }
+  
+  .tables-title {
+    font-size: 1.5rem;
+  }
+  
+  .tables-nav-button {
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .tables-main-layout {
+    flex-direction: row;
+  }
+  
+  .tables-categories {
+    width: 200px;
+  }
+  
+  .tables-products {
+    width: 300px;
+  }
+  
+  .tables-canvas {
+    flex: 1;
+  }
+  
+  .tables-cart {
+    width: 250px;
+  }
+  
+  .tables-toggle-products {
+    display: none; /* Hide toggle button on tablet and desktop */
+  }
+}
+
+/* Desktop styles for /tables (1025px and up) - keep original design */
+@media (min-width: 1025px) {
+  .tables-header {
+    /* Original desktop styles maintained */
+  }
+  
+  .tables-main-layout {
+    /* Original desktop layout maintained */
+  }
+}

@@ -211,17 +211,17 @@ function POSContent() {
           isOpen={showLocationModal} 
           onLocationSelected={handleLocationSelected} 
         />
-        <div className="flex h-screen bg-background">
+        <div className="flex h-screen bg-background pos-main-layout">
           {showCategories && (
             <CategorySidebar selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} categories={categoriasConOtros} isOpen={showCategories} />
           )}
-          <main className="flex-1 flex flex-col h-screen overflow-hidden">
+          <main className="flex-1 flex flex-col h-screen overflow-hidden pos-products-section">
             <div className="w-full px-10 pt-2 pb-1 bg-background">
-              <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 px-6 py-3 flex items-center justify-between gap-2">
+              <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 px-6 py-3 flex items-center justify-between gap-2 pos-header">
                 {/* Título */}
-                <h1 className="text-2xl font-bold text-primary whitespace-nowrap">POS</h1>
+                <h1 className="text-2xl font-bold text-primary whitespace-nowrap pos-title">POS</h1>
                 {/* Ubicación */}
-                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1">
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 pos-location">
                   <MapPin className="h-3 w-3 text-primary" />
                   <span className="text-sm text-gray-700">{selectedLocation?.name || 'RESTAURANTE BOGOTÁ'}</span>
                   <Button
@@ -253,39 +253,44 @@ function POSContent() {
                   />
                 </div>
                 {/* Botones de navegación */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pos-buttons">
                   <Button
                     variant={showCategories ? "default" : "outline"}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-2 shadow-sm hover:shadow-md transition-all duration-200 ${showCategories ? 'bg-purple-600 text-white border-purple-600 shadow-lg' : 'bg-purple-50 text-purple-700 border-purple-300 hover:border-purple-600 hover:bg-purple-100'}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-2 shadow-sm hover:shadow-md transition-all duration-200 pos-nav-button ${showCategories ? 'bg-purple-600 text-white border-purple-600 shadow-lg' : 'bg-purple-50 text-purple-700 border-purple-300 hover:border-purple-600 hover:bg-purple-100'}`}
                     onClick={() => setShowCategories(!showCategories)}
                   >
                     <Grid3X3 className="h-4 w-4" />
-                    Categorías
+                    <span>Categorías</span>
+                    <span className="sm:hidden">Cat</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-50 text-purple-700 border-2 border-purple-300 shadow-sm hover:shadow-md hover:border-purple-600 hover:bg-purple-100 transition-all duration-200"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-50 text-purple-700 border-2 border-purple-300 shadow-sm hover:shadow-md hover:border-purple-600 hover:bg-purple-100 transition-all duration-200 pos-nav-button"
                     onClick={() => router.push('/tables')}
                   >
                     <MapPin className="h-4 w-4" />
-                    Mesas
+                    <span>Mesas</span>
+                    <span className="sm:hidden">Mesas</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-50 text-purple-700 border-2 border-purple-300 shadow-sm hover:shadow-md hover:border-purple-600 hover:bg-purple-100 transition-all duration-200"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-50 text-purple-700 border-2 border-purple-300 shadow-sm hover:shadow-md hover:border-purple-600 hover:bg-purple-100 transition-all duration-200 pos-nav-button"
                     onClick={() => router.push('/dashboard')}
                   >
                     <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
+                    <span>Dashboard</span>
+                    <span className="sm:hidden">Dash</span>
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto p-4 pos-products">
               <ProductGrid category={selectedCategory} searchQuery={searchQuery} compact={false} />
             </div>
           </main>
-          <CartSidebar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <div className="pos-cart">
+            <CartSidebar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          </div>
         </div>
       </>
     </CartProvider>

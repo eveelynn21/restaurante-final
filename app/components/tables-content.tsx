@@ -29,6 +29,9 @@ export default function TablesContent() {
 
   // Estado para mostrar/ocultar el sidebar de categorías
   const [showCategories, setShowCategories] = useState(false)
+  
+  // Estado para mostrar/ocultar productos en móvil
+  const [showProducts, setShowProducts] = useState(false)
 
   // Cargar ubicación seleccionada al iniciar
   useEffect(() => {
@@ -161,9 +164,9 @@ export default function TablesContent() {
         />
         <div className="w-full h-full flex flex-col bg-background">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b bg-white shadow-sm">
+          <div className="flex items-center justify-between p-3 border-b bg-white shadow-sm tables-header">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-800">Gestión de Mesas</h1>
+              <h1 className="text-xl font-bold text-gray-800 tables-title">Gestión de Mesas</h1>
               {/* Ubicación */}
               <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1">
                 <MapPin className="h-3 w-3 text-primary" />
@@ -179,7 +182,7 @@ export default function TablesContent() {
               </div>
             </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap tables-nav-buttons">
             {/* Botón CLIENTE PUNTO DE VENTA y + */}
             <div className="flex items-center gap-1">
               <ClientSearchDialog 
@@ -201,12 +204,13 @@ export default function TablesContent() {
             </div>
             {/* Eliminar el input de búsqueda del header */}
             <Button variant="outline"
-              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-3"
+              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-2 sm:px-3 tables-nav-button"
               onClick={() => router.push("/pos")}
               style={{ backgroundColor: '#ede9fe', color: '#7c3aed', borderColor: '#a78bfa' }}
             >
               <ShoppingCart className="mr-1 h-3 w-3" />
-              POS
+              <span className="hidden sm:inline">POS</span>
+              <span className="sm:hidden">POS</span>
               {itemCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                   {itemCount}
@@ -214,37 +218,40 @@ export default function TablesContent() {
               )}
             </Button>
             <Button variant="outline"
-              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-3"
+              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-2 sm:px-3 tables-nav-button"
               onClick={() => router.push("/comandas")}
               style={{ backgroundColor: '#ede9fe', color: '#7c3aed', borderColor: '#a78bfa' }}
             >
               <Clock className="mr-1 h-3 w-3" />
-              Comandas
+              <span className="hidden sm:inline">Comandas</span>
+              <span className="sm:hidden">Comandas</span>
             </Button>
             <Button variant="outline"
-              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-3"
+              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-2 sm:px-3 tables-nav-button"
               onClick={() => router.push("/dashboard")}
               style={{ backgroundColor: '#ede9fe', color: '#7c3aed', borderColor: '#a78bfa' }}
             >
               <svg className="mr-1 h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 8h2v-2H7v2zm0-4h2v-2H7v2zm0-4h2V7H7v2zm4 8h2v-2h-2v2zm0-4h2v-2h-2v2zm0-4h2V7h-2v2zm4 8h2v-2h-2v2zm0-4h2v-2h-2v2zm0-4h2V7h-2v2z"></path></svg>
-              Dashboard
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Dash</span>
             </Button>
             <Button
               variant="outline"
-              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-3"
+              className="text-xs bg-purple-100 text-purple-700 border-2 border-purple-400 shadow-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-600 h-8 px-2 sm:px-3 tables-nav-button"
               onClick={() => setShowCategories((v) => !v)}
               style={{ backgroundColor: '#ede9fe', color: '#7c3aed', borderColor: '#a78bfa' }}
             >
-              {showCategories ? 'Ocultar Categorías' : 'Mostrar Categorías'}
+              <span className="hidden sm:inline">{showCategories ? 'Ocultar Categorías' : 'Mostrar Categorías'}</span>
+              <span className="sm:hidden">Cat</span>
             </Button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden flex-col lg:flex-row tables-main-layout">
           {/* Categories Sidebar */}
           {showCategories && (
-            <div className="w-56 border-r bg-white">
+            <div className="w-full lg:w-56 border-r bg-white tables-categories">
               <CategorySidebar 
                 selectedCategory={selectedCategory} 
                 onSelectCategory={setSelectedCategory} 
@@ -257,11 +264,11 @@ export default function TablesContent() {
           {/* Eliminado el botón flotante de categorías */}
 
           {/* Products Section */}
-          <div className="w-96 border-r bg-white flex flex-col">
+          <div className={`w-full lg:w-96 border-r bg-white flex flex-col tables-products ${showProducts ? 'expanded' : ''}`}>
             <div className="p-4 border-b flex flex-col gap-2">
               <div>
                 <h2 className="text-lg font-semibold">Productos</h2>
-                <p className="text-sm text-muted-foreground">Arrastra los productos a las mesas o haz click para agregar</p>
+                <p className="text-sm text-muted-foreground hidden sm:block">Arrastra los productos a las mesas o haz click para agregar</p>
               </div>
               {/* Filtro de búsqueda */}
               <div className="relative">
@@ -276,13 +283,13 @@ export default function TablesContent() {
                 />
               </div>
             </div>
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto p-4 tables-products-content">
               <ProductGrid category={selectedCategory} searchQuery={searchQuery} compact={true} onProductClick={handleProductClick} />
             </div>
           </div>
 
           {/* Restaurant Canvas */}
-          <div className="flex-1">
+          <div className="flex-1 hidden lg:block tables-canvas">
             <RestaurantCanvas 
               onTableSelect={handleTableSelect} 
               searchQuery={searchQuery}
@@ -290,6 +297,14 @@ export default function TablesContent() {
             />
           </div>
         </div>
+        
+        {/* Botón flotante para mostrar/ocultar productos en móvil */}
+        <button 
+          className="tables-toggle-products"
+          onClick={() => setShowProducts(!showProducts)}
+        >
+          {showProducts ? '−' : '+'}
+        </button>
       </div>
       </>
     </CartProvider>

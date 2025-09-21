@@ -114,23 +114,23 @@ export default function CartSidebar({ searchQuery, setSearchQuery }: CartSidebar
   }
 
   return (
-    <div className="flex w-80 flex-col border-l border-border bg-card/50 backdrop-blur-sm">
+    <div className="flex w-full lg:w-80 flex-col border-l border-border bg-card/50 backdrop-blur-sm h-screen">
       {/* Header del carrito */}
-      <div className="flex items-center justify-between border-b border-border p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <ShoppingCart className="h-5 w-5 text-primary" />
+      <div className="flex items-center justify-between border-b border-border p-4 sm:p-6 bg-gradient-to-r from-primary/5 to-secondary/5 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
-          <h2 className="text-xl font-bold text-foreground">Cart</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-foreground">Cart</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-lg">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="rounded-full bg-primary px-2 sm:px-3 py-1 text-xs font-bold text-primary-foreground shadow-lg">
             {itemCount} items
           </span>
         </div>
       </div>
       {/* Barra de búsqueda funcional */}
-      <div className="px-6 pt-4 pb-2">
+      <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-2 flex-shrink-0">
         <div className="relative w-full">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <input
@@ -144,7 +144,7 @@ export default function CartSidebar({ searchQuery, setSearchQuery }: CartSidebar
       </div>
 
       {/* Contenido del carrito */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6">
         {isLoading ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
@@ -257,19 +257,19 @@ export default function CartSidebar({ searchQuery, setSearchQuery }: CartSidebar
       </div>
 
       {/* Footer con total y checkout */}
-      <div className="border-t border-border p-6 bg-gradient-to-r from-accent/20 to-accent/10">
-        <div className="mb-6 space-y-3">
-          <div className="flex justify-between items-center p-3 bg-card rounded-lg border border-border">
-            <p className="font-medium text-foreground">Subtotal</p>
-                            <p className="font-bold text-primary text-lg">{formatPrice(cartTotal)}</p>
+      <div className="border-t border-border p-4 sm:p-6 bg-gradient-to-r from-accent/20 to-accent/10 flex-shrink-0">
+        <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3">
+          <div className="flex justify-between items-center p-2 sm:p-3 bg-card rounded-lg border border-border">
+            <p className="font-medium text-foreground text-sm sm:text-base">Subtotal</p>
+            <p className="font-bold text-primary text-base sm:text-lg">{formatPrice(cartTotal)}</p>
           </div>
-          <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
-            <p className="font-bold text-foreground">Total</p>
-                            <p className="font-bold text-primary text-xl">{formatPrice(cartTotal)}</p>
+          <div className="flex justify-between items-center p-2 sm:p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <p className="font-bold text-foreground text-sm sm:text-base">Total</p>
+            <p className="font-bold text-primary text-lg sm:text-xl">{formatPrice(cartTotal)}</p>
           </div>
         </div>
         <Button 
-          className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50" 
+          className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 text-sm sm:text-base" 
           size="lg" 
           disabled={cart.length === 0} 
           onClick={handleCheckout}
